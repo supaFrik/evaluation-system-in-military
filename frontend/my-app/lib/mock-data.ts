@@ -1,4 +1,63 @@
-import { UserAccount, Platoon, Soldier, DailyScore, CommendationItem } from './types';
+import { UserAccount, Platoon, Soldier, DailyScore, CommendationItem, EmulationCriterion } from './types';
+
+export const DEFAULT_CRITERIA: EmulationCriterion[] = [
+  {
+    id: 'c_political',
+    name: 'Chất lượng chính trị, tư tưởng',
+    code: 'CT',
+    maxScore: 100,
+    description: 'Chấp hành nghiêm đường lối của Đảng, pháp luật Nhà nước, kỷ luật Quân đội; gương mẫu trong học tập chính trị.',
+    deductionRules: [
+      'Không tập trung trong giờ học tập chính trị (-5đ)',
+      'Không thuộc 10 lời thề, 12 điều kỷ luật (-10đ)',
+      'Có biểu hiện tư tưởng dao động, thiếu an tâm công tác (-20đ)',
+    ],
+    isActive: true,
+    category: 'CHINH_TRI',
+  },
+  {
+    id: 'c_task',
+    name: 'Huấn luyện & Thực hiện nhiệm vụ',
+    code: 'NV',
+    maxScore: 100,
+    description: 'Tham gia đầy đủ, nghiêm túc các khoa mục huấn luyện quân sự; hoàn thành tốt nhiệm vụ trực sẵn sàng chiến đấu, tăng gia sản xuất.',
+    deductionRules: [
+      'Chậm giờ tập trung huấn luyện, báo động (-5đ)',
+      'Huấn luyện kiểm tra không đạt yêu cầu (-10đ)',
+      'Bỏ vị trí gác, trực ban không báo cáo (-30đ)',
+    ],
+    isActive: true,
+    category: 'QUAN_SU',
+  },
+  {
+    id: 'c_hygiene',
+    name: 'Nội vụ, vệ sinh & Thể lực',
+    code: 'NVVS',
+    maxScore: 100,
+    description: 'Duy trì nền nếp nội vụ vệ sinh gọn gàng, xếp chăn màn vuông vức, rèn luyện thể lực 4 bài thể dục sáng.',
+    deductionRules: [
+      'Chăn màn gấp chưa vuông, đặt sai quy định (-5đ)',
+      'Giày dép, quân trang để lộn xộn (-5đ)',
+      'Không tham gia thể dục sáng, rèn luyện thể lực (-10đ)',
+    ],
+    isActive: true,
+    category: 'HAU_CAN',
+  },
+  {
+    id: 'c_bearing',
+    name: 'Lễ tiết tác phong & Chấp hành kỷ luật',
+    code: 'LTP',
+    maxScore: 100,
+    description: 'Xưng hô chào hỏi đúng điều lệnh quản lý bộ đội; quân dung tươi tỉnh, đầu tóc cắt ngắn gọn gàng đúng quy cách.',
+    deductionRules: [
+      'Xưng hô, chào hỏi chưa đúng điều lệnh (-5đ)',
+      'Đầu tóc dài, mang mặc sai lễ tiết (-5đ)',
+      'Vi phạm quy định sử dụng điện thoại thông minh (-20đ)',
+    ],
+    isActive: true,
+    category: 'KY_LUAT',
+  },
+];
 
 export const MOCK_ACCOUNTS: UserAccount[] = [
   {

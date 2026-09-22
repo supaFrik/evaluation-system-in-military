@@ -48,18 +48,31 @@ export interface ViolationRecord {
   points: number; // Điểm trừ (âm) hoặc cộng (dương)
 }
 
+export interface EmulationCriterion {
+  id: string;
+  name: string; // Tên tiêu chí: Chất lượng chính trị, Huấn luyện SSCĐ...
+  code: string; // CT, NV, NVVS, LTP, HL, TG...
+  maxScore: number; // Điểm chuẩn tối đa (mặc định 100)
+  description: string; // Hướng dẫn, yêu cầu đánh giá
+  deductionRules: string[]; // Các lỗi trừ điểm thường gặp
+  isActive: boolean; // Trạng thái kích hoạt áp dụng
+  category?: 'CHINH_TRI' | 'QUAN_SU' | 'HAU_CAN' | 'KY_LUAT' | 'KHAC';
+}
+
 export interface DailyScore {
   id: string;
   soldierId: string;
   soldierName: string;
   platoonId: string;
   date: string; // YYYY-MM-DD
-  // 4 tiêu chí chuẩn (thang điểm 100)
+  // Điểm các tiêu chí động linh hoạt: { [criterionId]: number }
+  criteriaScores?: Record<string, number>;
+  // 4 tiêu chí chuẩn ban đầu (thang điểm 100) - bảo toàn tương thích ngược
   politicalScore: number; // 1. Chất lượng chính trị
   taskScore: number; // 2. Thực hiện nhiệm vụ
   hygieneScore: number; // 3. Nội vụ, vệ sinh
   bearingScore: number; // 4. Lễ tiết tác phong
-  totalScore: number; // Tổng điểm (max 400)
+  totalScore: number; // Tổng điểm
   violations: ViolationRecord[];
   notes?: string;
   evaluatedBy: string; // Người chấm
@@ -101,6 +114,18 @@ export interface CommendationItem {
   disciplineDocument?: DisciplineDocument;
 }
 
+export interface DailyLockStatus {
+  date: string; // YYYY-MM-DD
+  isLocked: boolean;
+  lockedAt?: string; // Thời gian chốt ISO
+  lockedBy?: string; // Cán bộ chốt (Đại úy Nguyễn Văn Thắng)
+  lockNote?: string; // Ghi chú chốt sổ điểm danh 21:00
+  unlockHistory?: {
+    unlockedAt: string;
+    unlockedBy: string;
+    reason: string;
+  }[];
+}
 
 export interface PlatoonAggregate {
   platoonId: string;
@@ -111,6 +136,8 @@ export interface PlatoonAggregate {
   avgHygiene: number;
   avgBearing: number;
   avgTotal: number;
+  avgCriteriaScores?: Record<string, number>;
   rank: number; // 1, 2, 3
   generalRemark: string; // Nhận xét chung
 }
+
