@@ -2,7 +2,16 @@
 
 import React, { useState } from 'react';
 import { PlatoonAggregate, CommendationItem } from '@/lib/types';
-import { Printer, FileDown, FileText, Calendar } from 'lucide-react';
+import { Printer, FileDown, FileText, Calendar, ChevronDown } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { notify } from '@/lib/notify';
 import {
   LineChart,
@@ -53,9 +62,9 @@ interface CustomDotProps {
 function HighlightDot({ cx = 0, cy = 0, value = 0, payload, seriesData }: CustomDotProps & { seriesData: number[] }) {
   const max = Math.max(...seriesData);
   const min = Math.min(...seriesData);
-  if (value === max) return <circle cx={cx} cy={cy} r={5} fill="#16a34a" stroke="#fff" strokeWidth={1.5} />;
-  if (value === min) return <circle cx={cx} cy={cy} r={5} fill="#b91c1c" stroke="#fff" strokeWidth={1.5} />;
-  return <circle cx={cx} cy={cy} r={3.5} fill="currentColor" stroke="#fff" strokeWidth={1} />;
+  if (value === max) return <circle cx={cx} cy={cy} r={4.5} fill="#15803d" stroke="#fff" strokeWidth={1.5} />;
+  if (value === min) return <circle cx={cx} cy={cy} r={4.5} fill="#991b1b" stroke="#fff" strokeWidth={1.5} />;
+  return <circle cx={cx} cy={cy} r={3} fill="currentColor" stroke="#fff" strokeWidth={1} />;
 }
 
 interface CustomTooltipProps {
@@ -67,7 +76,7 @@ interface CustomTooltipProps {
 function CustomTooltip({ active, payload, label }: CustomTooltipProps) {
   if (!active || !payload?.length) return null;
   return (
-    <div className="rounded border border-zinc-200 bg-white px-3 py-2 text-xs shadow-md">
+    <div className="rounded-[3px] border border-zinc-300 bg-white px-3 py-2 text-xs shadow-sm">
       <p className="font-semibold text-zinc-700 mb-1">{label}</p>
       {payload.map((p) => (
         <p key={p.name} style={{ color: p.color }} className="font-mono">
@@ -76,6 +85,42 @@ function CustomTooltip({ active, payload, label }: CustomTooltipProps) {
       ))}
     </div>
   );
+}
+
+export function getUnitEvaluation(p: PlatoonAggregate) {
+  const criteriaList = [
+    { name: 'Chất lượng chính trị, tư tưởng', score: p.avgPolitical, key: 'CT' },
+    { name: 'Huấn luyện & Thực hiện nhiệm vụ', score: p.avgTask, key: 'NV' },
+    { name: 'Nội vụ vệ sinh & Thể lực', score: p.avgHygiene, key: 'NVVS' },
+    { name: 'Lễ tiết tác phong & Kỷ luật', score: p.avgBearing, key: 'LTP' },
+  ];
+
+  const sortedByScore = [...criteriaList].sort((a, b) => b.score - a.score);
+  const highest = sortedByScore[0];
+  const lowest = sortedByScore[sortedByScore.length - 1];
+
+  let strength = '';
+  let weakness = '';
+
+  if (highest && highest.score > 0) {
+    if (highest.key === 'CT') strength = `Chất lượng chính trị xuất sắc (${highest.score}đ), 100% quân nhân an tâm tư tưởng công tác, xác định tốt nhiệm vụ`;
+    else if (highest.key === 'NV') strength = `Thực hiện nhiệm vụ huấn luyện và SSCĐ đạt kết quả cao (${highest.score}đ), duy trì nghiêm chế độ canh gác an toàn`;
+    else if (highest.key === 'NVVS') strength = `Nội vụ vệ sinh chuẩn mực (${highest.score}đ), chăn màn vuông thành sắc cạnh, doanh trại chính quy sáng đẹp`;
+    else strength = `Lễ tiết tác phong gương mẫu (${highest.score}đ), xưng hô chào hỏi đúng điều lệnh, tinh thần đoàn kết nội bộ tốt`;
+  } else {
+    strength = 'Đang cập nhật số liệu chấm điểm thi đua';
+  }
+
+  if (lowest && lowest.score > 0 && lowest.score < 96) {
+    if (lowest.key === 'CT') weakness = `Nhận thức chính trị cần củng cố thêm (${lowest.score}đ), một số đồng chí cần tập trung hơn trong giờ học tập chính trị`;
+    else if (lowest.key === 'NV') weakness = `Huấn luyện và thực hiện nhiệm vụ còn điểm trừ (${lowest.score}đ), cần chấn chỉnh việc duy trì quân số đúng giờ`;
+    else if (lowest.key === 'NVVS') weakness = `Nội vụ vệ sinh đạt điểm thấp nhất (${lowest.score}đ), còn hiện tượng gấp chăn chưa vuông góc, sắp xếp giày dép chưa đều`;
+    else weakness = `Lễ tiết tác phong cần chấn chỉnh (${lowest.score}đ), nhắc nhở việc xưng hô đúng điều lệnh quân đội trong giờ nghỉ`;
+  } else {
+    weakness = 'Tiếp tục duy trì nền nếp chính quy mẫu mực, không có vi phạm lớn phát sinh';
+  }
+
+  return { strength, weakness };
 }
 
 export function PlatoonAnalysis({
@@ -166,20 +211,11 @@ export function PlatoonAnalysis({
 
         <div class="section-title">II. ĐÁNH GIÁ ĐIỂM MẠNH VÀ MẶT CÒN TỒN TẠI TỪNG ĐƠN VỊ</div>
         ${sorted.map((a) => {
-          const strength = a.platoonId === 'td1'
-            ? 'Nội vụ vệ sinh xuất sắc, chăn màn gấp vuông thành sắc cạnh, lễ tiết tác phong chuẩn mực'
-            : a.platoonId === 'td2'
-            ? 'Chất lượng chính trị cao nhất đơn vị, 100% quân nhân an tâm tư tưởng công tác'
-            : 'Thực hiện nhiệm vụ huấn luyện và gác đêm xuất sắc, xử lý nhanh tình huống giả định';
-          const weakness = a.platoonId === 'td1'
-            ? 'Tiểu đội 2 còn trường hợp đi muộn giờ tập trung 3 phút'
-            : a.platoonId === 'td2'
-            ? 'Hành lang tầng 2 sắp xếp giày dép còn lộn xộn, cần chấn chỉnh ngay'
-            : 'Nội vụ vệ sinh đạt điểm thấp nhất (85đ), gấp chăn chưa vuông góc';
+          const evalResult = getUnitEvaluation(a);
           return `
             <p><strong>• ${a.platoonName} (Hạng ${a.rank}):</strong></p>
-            <p style="margin-left: 20px;">- <i>Điểm mạnh:</i> ${strength}.</p>
-            <p style="margin-left: 20px;">- <i>Hạn chế cần khắc phục:</i> ${weakness}.</p>
+            <p style="margin-left: 20px;">- <i>Điểm mạnh:</i> ${evalResult.strength}.</p>
+            <p style="margin-left: 20px;">- <i>Hạn chế cần khắc phục:</i> ${evalResult.weakness}.</p>
           `;
         }).join('')}
 
@@ -232,50 +268,54 @@ export function PlatoonAnalysis({
 
   return (
     <div className="w-full max-w-5xl py-2 space-y-8">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-zinc-200 pb-4 print:hidden">
-        <div>
-          <h2 className="text-xl font-semibold text-zinc-900 tracking-tight">
-            Báo cáo Đánh giá Mạnh / Yếu & Giao ban Thi đua
-          </h2>
-          <p className="text-xs text-zinc-500 mt-1">
-            Tổng hợp phân tích phục vụ chỉ huy hội ý, giao ban đơn vị
-          </p>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2.5">
-          <button
-            type="button"
-            onClick={handleExportWordReport}
-            className="inline-flex items-center gap-1.5 rounded border border-zinc-300 bg-white px-3.5 py-1.5 text-xs font-semibold text-zinc-700 hover:bg-zinc-50 transition-colors shadow-2xs"
-            title="Xuất báo cáo giao ban thi đua định dạng Word (.doc)"
-          >
-            <FileDown className="h-3.5 w-3.5 text-blue-600" />
-            <span>Xuất Báo cáo (Word)</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => window.print()}
-            className="inline-flex items-center gap-1.5 rounded border border-zinc-300 bg-white px-3.5 py-1.5 text-xs font-semibold text-zinc-700 hover:bg-zinc-50 transition-colors shadow-2xs"
-            title="In trực tiếp hoặc xuất PDF khổ A4"
-          >
-            <Printer className="h-3.5 w-3.5 text-zinc-600" />
-            <span>In Báo cáo (A4)</span>
-          </button>
-        </div>
+      {/* Actions */}
+      <div className="flex flex-wrap items-center justify-end gap-2.5 border-b border-zinc-200 pb-3 print:hidden">
+        <DropdownMenu>
+          <DropdownMenuTrigger
+            render={
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 gap-1.5 bg-white text-xs font-semibold text-zinc-700 border-zinc-300 shadow-2xs hover:bg-zinc-50 btn-tactile cursor-pointer"
+              >
+                <FileDown className="h-3.5 w-3.5 text-blue-600" />
+                <span>Xuất & In báo cáo</span>
+                <ChevronDown className="h-3 w-3 text-zinc-500 opacity-70" />
+              </Button>
+            }
+          />
+          <DropdownMenuContent align="end" className="w-52 bg-white border border-zinc-200 shadow-md rounded-[3px] p-1 text-xs">
+            <DropdownMenuGroup>
+              <DropdownMenuLabel className="text-xs font-bold text-zinc-500">Định dạng văn bản</DropdownMenuLabel>
+              <DropdownMenuItem
+                onClick={handleExportWordReport}
+                className="cursor-pointer gap-2 py-1.5 text-xs text-zinc-700 hover:bg-zinc-100"
+              >
+                <FileText className="h-3.5 w-3.5 text-blue-600" />
+                <span>Xuất tệp Word (.doc)</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => window.print()}
+                className="cursor-pointer gap-2 py-1.5 text-xs text-zinc-700 hover:bg-zinc-100"
+              >
+                <Printer className="h-3.5 w-3.5 text-zinc-600" />
+                <span>In văn bản A4 / Lưu PDF</span>
+              </DropdownMenuItem>
+            </DropdownMenuGroup>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
       {/* Report Body */}
-      <div className="border border-zinc-200 p-6 space-y-8 bg-white">
+      <div className="border border-zinc-200 p-4 sm:p-6 space-y-6 sm:space-y-8 bg-white shadow-2xs rounded-[3px]">
 
         {/* Report Header */}
-        <div className="grid grid-cols-2 text-xs border-b border-zinc-200 pb-4">
-          <div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs border-b border-zinc-200 pb-4">
+          <div className="text-left">
             <p className="font-bold uppercase tracking-wider text-zinc-800">ĐẠI ĐỘI 1</p>
             <p className="text-zinc-600 font-medium">Trung đội 1 — Trung đội 2 — Trung đội 3</p>
           </div>
-          <div className="text-right">
+          <div className="text-left sm:text-right">
             <p className="font-bold uppercase tracking-wider text-zinc-800">CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM</p>
             <p className="text-zinc-600 italic">Độc lập – Tự do – Hạnh phúc</p>
             <p className="text-zinc-500 mt-1">Ngày {selectedDate}</p>
@@ -325,30 +365,10 @@ export function PlatoonAnalysis({
                     )}
                   />
 
-                  {/* Reference average lines */}
-                  <ReferenceLine
-                    y={parseFloat(avgAll(td1Series))}
-                    stroke="#b91c1c"
-                    strokeDasharray="4 3"
-                    strokeWidth={1}
-                  />
-                  <ReferenceLine
-                    y={parseFloat(avgAll(td2Series))}
-                    stroke="#2563eb"
-                    strokeDasharray="4 3"
-                    strokeWidth={1}
-                  />
-                  <ReferenceLine
-                    y={parseFloat(avgAll(td3Series))}
-                    stroke="#16a34a"
-                    strokeDasharray="4 3"
-                    strokeWidth={1}
-                  />
-
                   <Line
                     type="monotone"
                     dataKey="Trung đội 1"
-                    stroke="#b91c1c"
+                    stroke="#991b1b"
                     strokeWidth={2}
                     dot={(props) => (
                       <HighlightDot
@@ -361,7 +381,7 @@ export function PlatoonAnalysis({
                   <Line
                     type="monotone"
                     dataKey="Trung đội 2"
-                    stroke="#2563eb"
+                    stroke="#15803d"
                     strokeWidth={2}
                     dot={(props) => (
                       <HighlightDot
@@ -374,7 +394,7 @@ export function PlatoonAnalysis({
                   <Line
                     type="monotone"
                     dataKey="Trung đội 3"
-                    stroke="#16a34a"
+                    stroke="#475569"
                     strokeWidth={2}
                     dot={(props) => (
                       <HighlightDot
@@ -388,73 +408,127 @@ export function PlatoonAnalysis({
               </ResponsiveContainer>
             </div>
 
-            {/* Average summary below chart */}
-            <div className="mt-3 flex flex-wrap gap-6 justify-center text-xs text-zinc-600">
-              <span>
-                <span className="inline-block h-2 w-4 rounded-sm bg-[#b91c1c] mr-1 align-middle" />
-                Trung đội 1 — Trung bình: <strong className="text-zinc-900">{avgAll(td1Series)} đ</strong>
-              </span>
-              <span>
-                <span className="inline-block h-2 w-4 rounded-sm bg-[#2563eb] mr-1 align-middle" />
-                Trung đội 2 — Trung bình: <strong className="text-zinc-900">{avgAll(td2Series)} đ</strong>
-              </span>
-              <span>
-                <span className="inline-block h-2 w-4 rounded-sm bg-[#16a34a] mr-1 align-middle" />
-                Trung đội 3 — Trung bình: <strong className="text-zinc-900">{avgAll(td3Series)} đ</strong>
-              </span>
+            {/* Average summary below chart — Military Data Strip */}
+            <div className="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
+              <div className="flex items-center justify-between px-3 py-2 rounded-[3px] border border-zinc-200 bg-white shadow-2xs">
+                <span className="flex items-center gap-2 font-medium text-zinc-700">
+                  <span className="h-2.5 w-2.5 rounded-[2px] bg-[#991b1b]" />
+                  Trung đội 1
+                </span>
+                <span className="font-mono font-bold tabular-nums text-zinc-900">{avgAll(td1Series)} đ</span>
+              </div>
+              <div className="flex items-center justify-between px-3 py-2 rounded-[3px] border border-zinc-200 bg-white shadow-2xs">
+                <span className="flex items-center gap-2 font-medium text-zinc-700">
+                  <span className="h-2.5 w-2.5 rounded-[2px] bg-[#15803d]" />
+                  Trung đội 2
+                </span>
+                <span className="font-mono font-bold tabular-nums text-zinc-900">{avgAll(td2Series)} đ</span>
+              </div>
+              <div className="flex items-center justify-between px-3 py-2 rounded-[3px] border border-zinc-200 bg-white shadow-2xs">
+                <span className="flex items-center gap-2 font-medium text-zinc-700">
+                  <span className="h-2.5 w-2.5 rounded-[2px] bg-[#475569]" />
+                  Trung đội 3
+                </span>
+                <span className="font-mono font-bold tabular-nums text-zinc-900">{avgAll(td3Series)} đ</span>
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Detailed Analysis */}
-        <div className="space-y-4 text-xs text-zinc-800">
+        {/* Detailed Analysis — Plain Clean Administrative Table */}
+        <div className="space-y-3 text-xs text-zinc-800">
           <h4 className="font-bold text-zinc-900 uppercase tracking-wider border-b border-zinc-200 pb-1">
-            I. KẾT QUẢ XẾP HẠNG VÀ PHÂN TÍCH MẠNH / YẾU
+            I. KẾT QUẢ XẾP HẠNG VÀ MA TRẬN PHÂN TÍCH MẠNH / YẾU
           </h4>
-          {aggregates.map((p) => (
-            <div key={p.platoonId} className="space-y-1.5 pl-3 border-l-2 border-zinc-300">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <span className="font-bold text-sm text-zinc-900">
-                  {p.platoonName}: Hạng {p.rank} — {p.avgTotal}/400 điểm
-                </span>
-                <span className="font-mono text-zinc-500 text-[11px]">
-                  CT: {p.avgPolitical} | NV: {p.avgTask} | NVVS: {p.avgHygiene} | TTP: {p.avgBearing}
-                </span>
-              </div>
-              <p className="leading-relaxed text-zinc-700">
-                <strong>Điểm mạnh:</strong>{' '}
-                {p.platoonId === 'td1'
-                  ? 'Nội vụ vệ sinh xuất sắc, chăn màn gấp vuông thành sắc cạnh, lễ tiết tác phong chuẩn mực.'
-                  : p.platoonId === 'td2'
-                  ? 'Chất lượng chính trị cao nhất đơn vị, 100% quân nhân an tâm tư tưởng.'
-                  : 'Thực hiện nhiệm vụ huấn luyện và gác đêm xuất sắc, xử lý nhanh tình huống.'}
-              </p>
-              <p className="leading-relaxed text-zinc-600">
-                <strong>Tồn tại:</strong>{' '}
-                {p.platoonId === 'td1'
-                  ? 'Tiểu đội 2 còn trường hợp đi muộn giờ tập trung 3 phút.'
-                  : p.platoonId === 'td2'
-                  ? 'Hành lang tầng 2 sắp xếp giày dép còn lộn xộn, cần chấn chỉnh ngay.'
-                  : 'Nội vụ vệ sinh đạt điểm thấp nhất (85đ), gấp chăn chưa vuông góc.'}
-              </p>
-            </div>
-          ))}
+          <div className="overflow-x-auto border border-zinc-200 bg-white">
+            <table className="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr className="bg-zinc-100 text-zinc-800 font-semibold border-b border-zinc-200">
+                  <th className="py-2.5 px-3 w-36">Đơn vị & Thứ hạng</th>
+                  <th className="py-2.5 px-3 w-44 text-center">Điểm TB & Chi tiết</th>
+                  <th className="py-2.5 px-3">Mặt mạnh nổi bật</th>
+                  <th className="py-2.5 px-3">Hạn chế & Biện pháp chấn chỉnh</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-zinc-200">
+                {aggregates.map((p) => (
+                  <tr key={p.platoonId} className="align-top table-row-hover">
+                    <td className="py-2.5 px-3 text-zinc-900">
+                      <div className="font-semibold">{p.platoonName}</div>
+                      <div className="text-xs text-zinc-500 font-normal mt-0.5">
+                        Hạng {p.rank} ({p.totalSoldiers} quân nhân)
+                      </div>
+                    </td>
+                    <td className="py-2.5 px-3 text-center">
+                      <div className="font-mono text-sm font-bold tabular-nums text-zinc-900">
+                        {p.avgTotal.toFixed(1)} đ
+                      </div>
+                      <div className="font-mono text-xs text-zinc-500 mt-1">
+                        CT: {p.avgPolitical} | NV: {p.avgTask} | NVVS: {p.avgHygiene} | TTP: {p.avgBearing}
+                      </div>
+                    </td>
+                    {(() => {
+                      const evalResult = getUnitEvaluation(p);
+                      return (
+                        <>
+                          <td className="py-2.5 px-3 text-zinc-700 leading-relaxed">
+                            {evalResult.strength}
+                          </td>
+                          <td className="py-2.5 px-3 text-zinc-700 leading-relaxed">
+                            {evalResult.weakness}
+                          </td>
+                        </>
+                      );
+                    })()}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
 
-        {/* Commendations */}
+        {/* Commendations & Reminders */}
         <div className="space-y-2 text-xs text-zinc-800">
           <h4 className="font-bold text-zinc-900 uppercase tracking-wider border-b border-zinc-200 pb-1">
             II. TẬP THỂ VÀ CÁ NHÂN ĐƯỢC BIỂU DƯƠNG TRONG KỲ
           </h4>
-          <ul className="list-disc list-inside space-y-1 pl-2 text-zinc-700">
-            {commendations
-              .filter((c) => c.type === 'COMMENDATION')
-              .map((c) => (
-                <li key={c.id}>
-                  <strong>{c.targetName}:</strong> {c.content}
-                </li>
-              ))}
-          </ul>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
+            <div className="space-y-1">
+              <div className="font-semibold text-zinc-900 text-xs">
+                1. Ghi nhận biểu dương:
+              </div>
+              <ul className="list-disc list-inside space-y-1 pl-1 text-zinc-700">
+                {commendations
+                  .filter((c) => c.type === 'COMMENDATION')
+                  .map((c) => (
+                    <li key={c.id}>
+                      <strong>{c.targetName}:</strong> {c.content}
+                    </li>
+                  ))}
+                {commendations.filter((c) => c.type === 'COMMENDATION').length === 0 && (
+                  <li className="text-zinc-400 italic">Chưa có ghi nhận biểu dương trong kỳ.</li>
+                )}
+              </ul>
+            </div>
+
+            <div className="space-y-1">
+              <div className="font-semibold text-zinc-900 text-xs">
+                2. Điểm cần rút kinh nghiệm:
+              </div>
+              <ul className="list-disc list-inside space-y-1 pl-1 text-zinc-700">
+                {commendations
+                  .filter((c) => c.type === 'REMINDER')
+                  .map((c) => (
+                    <li key={c.id}>
+                      <strong>{c.targetName}:</strong> {c.content}
+                    </li>
+                  ))}
+                {commendations.filter((c) => c.type === 'REMINDER').length === 0 && (
+                  <li className="text-zinc-400 italic">Đơn vị duy trì tốt kỷ luật.</li>
+                )}
+              </ul>
+            </div>
+          </div>
         </div>
 
         {/* Signature */}

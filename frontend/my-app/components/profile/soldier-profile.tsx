@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import Image from 'next/image';
 import { Soldier, DailyScore, CommendationItem } from '@/lib/types';
 import {
   Phone,
@@ -18,7 +19,9 @@ import {
   Download,
   X,
   CalendarCheck,
+  ArrowUpRightIcon,
 } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 import { notify } from '@/lib/notify';
 import {
   Table,
@@ -28,21 +31,20 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import {
-  Empty,
-  EmptyHeader,
-  EmptyMedia,
-  EmptyTitle,
-  EmptyDescription,
-  EmptyContent,
-} from '@/components/ui/empty';
 import { Button } from '@/components/ui/button';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+
+const RANKS = ['Binh nhì', 'Binh nhất', 'Hạ sĩ', 'Trung sĩ', 'Thượng sĩ', 'Thiếu úy', 'Trung úy', 'Thượng úy', 'Đại úy'];
+const ROLES = ['Chiến sĩ', 'Tiểu đội phó', 'Tiểu đội trưởng', 'Phó Trung đội trưởng', 'Trung đội trưởng'];
+const PARTY_STATUSES = ['Đoàn viên', 'Đảng viên dự bị', 'Đảng viên chính thức'];
 
 interface SoldierProfileProps {
   soldier: Soldier;
   scores: DailyScore[];
   commendations: CommendationItem[];
   onUpdatePhone?: (newPhone: string) => void;
+  canManage?: boolean;
+  onUpdateSoldier?: (soldier: Soldier) => void;
 }
 
 export function SoldierProfile({
@@ -50,11 +52,52 @@ export function SoldierProfile({
   scores,
   commendations,
   onUpdatePhone,
+  canManage = false,
+  onUpdateSoldier,
 }: SoldierProfileProps) {
   const [activeTab, setActiveTab] = useState<'overview' | 'scores' | 'commendations' | 'notes'>('overview');
   const [showMasked, setShowMasked] = useState(false);
   const [isEditingPhone, setIsEditingPhone] = useState(false);
   const [phoneInput, setPhoneInput] = useState(soldier.phone);
+
+  const [isFullEditModalOpen, setIsFullEditModalOpen] = useState(false);
+  const [fullFormData, setFullFormData] = useState({
+    name: soldier.name,
+    rank: soldier.rank,
+    roleTitle: soldier.roleTitle,
+    militaryCode: soldier.militaryCode,
+    idCardNumber: soldier.idCardNumber,
+    dob: soldier.dob,
+    gender: soldier.gender || 'Nam',
+    hometown: soldier.hometown,
+    phone: soldier.phone,
+    joinDate: soldier.joinDate,
+    partyStatus: soldier.partyStatus,
+    partyJoinDate: soldier.partyJoinDate || '',
+    officialDate: soldier.officialDate || '',
+    squadName: soldier.squadName,
+    platoonName: soldier.platoonName,
+  });
+
+  React.useEffect(() => {
+    setFullFormData({
+      name: soldier.name,
+      rank: soldier.rank,
+      roleTitle: soldier.roleTitle,
+      militaryCode: soldier.militaryCode,
+      idCardNumber: soldier.idCardNumber,
+      dob: soldier.dob,
+      gender: soldier.gender || 'Nam',
+      hometown: soldier.hometown,
+      phone: soldier.phone,
+      joinDate: soldier.joinDate,
+      partyStatus: soldier.partyStatus,
+      partyJoinDate: soldier.partyJoinDate || '',
+      officialDate: soldier.officialDate || '',
+      squadName: soldier.squadName,
+      platoonName: soldier.platoonName,
+    });
+  }, [soldier]);
 
   const soldierScores = scores.filter((s) => s.soldierId === soldier.id);
   const soldierCommendations = commendations.filter(
@@ -180,19 +223,20 @@ export function SoldierProfile({
 
   return (
     <div className="w-full max-w-5xl py-2">
-      {/* 1. Large Page Title */}
-      <h2 className="text-xl font-semibold text-zinc-900 mb-8">
-        Sơ lược về Quân nhân
-      </h2>
-
-      {/* 2. Simple Profile Header Area */}
+      {/* 1. Simple Profile Header Area */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 pb-6">
         <div className="flex items-start gap-5">
           {/* Avatar with Red Military Star Emblem */}
-          <div className="relative flex h-20 w-20 shrink-0 items-center justify-center rounded-full bg-[#b91c1c] text-white shadow-sm">
-            <span className="text-2xl font-bold tracking-tight">
-              {soldier.name.split(' ').slice(-1)[0][0]}
-            </span>
+          <div className="relative h-20 w-20 shrink-0">
+            <div className="h-full w-full rounded-full overflow-hidden border-2 border-yellow-500/70 bg-white shadow-sm">
+              <Image
+                src={soldier.avatarUrl || '/default-avatar.png'}
+                alt={soldier.name}
+                width={80}
+                height={80}
+                className="h-full w-full object-cover"
+              />
+            </div>
             <div className="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full border-2 border-white bg-yellow-400 text-[#b91c1c] text-xs font-black shadow-xs">
               ★
             </div>
@@ -232,25 +276,37 @@ export function SoldierProfile({
           </div>
         </div>
 
-        {/* Action Buttons: Export Word, Print PDF, Edit Phone */}
+        {/* Action Buttons: Export Word, Print PDF, Edit Phone, Full Edit */}
         <div className="flex flex-wrap items-center gap-2">
+          {canManage && onUpdateSoldier && (
+            <button
+              type="button"
+              onClick={() => setIsFullEditModalOpen(true)}
+              className="inline-flex items-center gap-1.5 rounded-[3px] bg-[#b91c1c] px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-[#991b1b] transition-colors shadow-2xs btn-tactile cursor-pointer"
+              title="Chỉnh sửa toàn diện hồ sơ quân nhân"
+            >
+              <Edit2 className="h-3.5 w-3.5" />
+              <span>Chỉnh sửa hồ sơ</span>
+            </button>
+          )}
+
           <button
             type="button"
             onClick={handleExportWord}
-            className="inline-flex items-center gap-1.5 rounded border border-zinc-300 bg-white px-3 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-50 transition-colors shadow-xs"
+            className="inline-flex items-center gap-1.5 rounded-[3px] border border-zinc-300 bg-white px-3 py-1.5 text-xs font-semibold text-zinc-700 hover:bg-zinc-50 transition-colors shadow-xs btn-tactile cursor-pointer"
             title="Xuất file lý lịch trích ngang Microsoft Word (.doc)"
           >
-            <FileDown className="h-3.5 w-3.5 text-blue-600" />
+            <FileDown className="h-3.5 w-3.5 text-blue-700" />
             <span>Xuất Word</span>
           </button>
 
           <button
             type="button"
             onClick={handlePrint}
-            className="inline-flex items-center gap-1.5 rounded border border-zinc-300 bg-white px-3 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-50 transition-colors shadow-xs"
+            className="inline-flex items-center gap-1.5 rounded-[3px] border border-zinc-300 bg-white px-3 py-1.5 text-xs font-semibold text-zinc-700 hover:bg-zinc-50 transition-colors shadow-xs btn-tactile cursor-pointer"
             title="In hoặc lưu PDF chuẩn mẫu quân đội"
           >
-            <Printer className="h-3.5 w-3.5 text-zinc-600" />
+            <Printer className="h-3.5 w-3.5 text-zinc-700" />
             <span>In lý lịch (PDF)</span>
           </button>
 
@@ -279,62 +335,31 @@ export function SoldierProfile({
           ) : (
             <button
               onClick={() => setIsEditingPhone(true)}
-              className="inline-flex items-center gap-1.5 rounded border border-[#b91c1c] px-3.5 py-1.5 text-xs font-medium text-[#b91c1c] hover:bg-red-50 transition-colors"
+              className="inline-flex items-center gap-1.5 rounded border border-zinc-300 bg-white px-3.5 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-50 transition-colors"
             >
               <Edit2 className="h-3.5 w-3.5" />
-              Cập nhật số điện thoại
+              Cập nhật SĐT
             </button>
           )}
         </div>
       </div>
 
-      {/* 3. Tabs Navigation with Red Underline */}
-      <div className="border-b border-zinc-200 mb-8">
-        <nav className="flex space-x-8 text-sm font-medium">
-          <button
-            onClick={() => setActiveTab('overview')}
-            className={`pb-3 border-b-2 transition-colors ${
-              activeTab === 'overview'
-                ? 'border-[#b91c1c] text-[#b91c1c] font-semibold'
-                : 'border-transparent text-zinc-500 hover:text-zinc-800 hover:border-zinc-300'
-            }`}
-          >
-            Sơ lược về quân nhân
-          </button>
-
-          <button
-            onClick={() => setActiveTab('scores')}
-            className={`pb-3 border-b-2 transition-colors ${
-              activeTab === 'scores'
-                ? 'border-[#b91c1c] text-[#b91c1c] font-semibold'
-                : 'border-transparent text-zinc-500 hover:text-zinc-800 hover:border-zinc-300'
-            }`}
-          >
-            Lịch sử điểm thi đua
-          </button>
-
-          <button
-            onClick={() => setActiveTab('commendations')}
-            className={`pb-3 border-b-2 transition-colors ${
-              activeTab === 'commendations'
-                ? 'border-[#b91c1c] text-[#b91c1c] font-semibold'
-                : 'border-transparent text-zinc-500 hover:text-zinc-800 hover:border-zinc-300'
-            }`}
-          >
-            Biểu dương / Nhắc nhở ({soldierCommendations.length})
-          </button>
-
-          <button
-            onClick={() => setActiveTab('notes')}
-            className={`pb-3 border-b-2 transition-colors ${
-              activeTab === 'notes'
-                ? 'border-[#b91c1c] text-[#b91c1c] font-semibold'
-                : 'border-transparent text-zinc-500 hover:text-zinc-800 hover:border-zinc-300'
-            }`}
-          >
-            Ghi chú cá nhân
-          </button>
-        </nav>
+      {/* 3. Tabs Navigation with Line Variant */}
+      <div className="mb-8">
+        <Tabs
+          value={activeTab}
+          onValueChange={(val) => setActiveTab(val as 'overview' | 'scores' | 'commendations' | 'notes')}
+          className="w-full"
+        >
+          <TabsList variant="line" className="overflow-x-auto no-scrollbar max-w-full flex justify-start whitespace-nowrap">
+            <TabsTrigger value="overview">Sơ lược về quân nhân</TabsTrigger>
+            <TabsTrigger value="scores">Lịch sử điểm thi đua</TabsTrigger>
+            <TabsTrigger value="commendations">
+              Biểu dương / Nhắc nhở ({soldierCommendations.length})
+            </TabsTrigger>
+            <TabsTrigger value="notes">Ghi chú cá nhân</TabsTrigger>
+          </TabsList>
+        </Tabs>
       </div>
 
       {/* 4. Tab Content */}
@@ -428,9 +453,6 @@ export function SoldierProfile({
               <h4 className="text-sm font-semibold text-zinc-900">
                 Lịch sử Chấm điểm & Nhật ký Thi đua Rèn luyện
               </h4>
-              <p className="text-xs text-zinc-500 mt-0.5">
-                Theo dõi diễn biến rèn luyện theo ngày/tuần/tháng kèm quyết định kỷ luật và khen thưởng.
-              </p>
             </div>
 
             {/* Time Filter Buttons */}
@@ -493,30 +515,28 @@ export function SoldierProfile({
 
           {/* Scores Table or Empty State */}
           {filteredScores.length === 0 ? (
-            <Empty className="border border-dashed border-zinc-200 py-10 bg-zinc-50/40">
-              <EmptyHeader>
-                <EmptyMedia variant="icon">
-                  <CalendarCheck className="h-5 w-5 text-zinc-400" />
-                </EmptyMedia>
-                <EmptyTitle>Chưa có dữ liệu điểm thi đua</EmptyTitle>
-                <EmptyDescription>
-                  Quân nhân chưa có kết quả chấm điểm nào trong khoảng thời gian đã chọn.
-                </EmptyDescription>
-              </EmptyHeader>
-              <EmptyContent>
+            <div className="border border-dashed border-zinc-200 py-10 bg-zinc-50/40 rounded-[3px] text-center space-y-2">
+              <div className="mx-auto flex h-9 w-9 items-center justify-center rounded-full bg-zinc-100 text-zinc-400">
+                <CalendarCheck className="h-5 w-5" />
+              </div>
+              <h4 className="text-xs font-semibold text-zinc-800">Chưa có dữ liệu điểm thi đua</h4>
+              <p className="text-xs text-zinc-500 max-w-sm mx-auto">
+                Quân nhân chưa có kết quả chấm điểm nào trong khoảng thời gian đã chọn.
+              </p>
+              <div className="pt-2">
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => setTimeFilter('all')}
-                  className="text-xs"
+                  className="text-xs h-7 px-3 text-zinc-700 border-zinc-300"
                 >
                   Xem toàn bộ lịch sử
                 </Button>
-              </EmptyContent>
-            </Empty>
+              </div>
+            </div>
           ) : (
-            <div className="border border-zinc-200 rounded-lg overflow-hidden bg-white shadow-2xs">
-              <Table>
+            <div className="border border-zinc-200 rounded-lg overflow-x-auto bg-white shadow-2xs">
+              <Table className="min-w-[700px]">
                 <TableHeader>
                   <TableRow className="bg-zinc-50/80">
                     <TableHead className="text-xs font-semibold text-zinc-700">Ngày</TableHead>
@@ -532,7 +552,7 @@ export function SoldierProfile({
                 </TableHeader>
                 <TableBody>
                   {filteredScores.map((sc) => (
-                    <TableRow key={sc.id} className="hover:bg-zinc-50/50">
+                    <TableRow key={sc.id} className="table-row-hover">
                       <TableCell className="font-mono text-xs text-zinc-800 font-medium">
                         {sc.date}
                       </TableCell>
@@ -551,10 +571,10 @@ export function SoldierProfile({
                             {sc.violations.map((v) => (
                               <span
                                 key={v.id}
-                                className={`inline-flex items-center text-[10px] px-1.5 py-0.5 rounded border ${
+                                className={`inline-flex items-center gap-1 rounded-[3px] border px-1.5 py-0.5 text-xs font-medium leading-none ${
                                   v.points < 0
-                                    ? 'bg-red-50 text-red-700 border-red-200'
-                                    : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                    ? 'border-red-200 bg-red-50 text-[#991b1b]'
+                                    : 'border-emerald-200 bg-emerald-50 text-emerald-800'
                                 }`}
                               >
                                 {v.points > 0 ? `+${v.points}` : v.points}đ: {v.content.replace(/ \([+-]\d+đ\)/, '')}
@@ -572,14 +592,12 @@ export function SoldierProfile({
                           <button
                             type="button"
                             onClick={() => setViewingDecisionScore(sc)}
-                            className="inline-flex items-center gap-1.5 rounded border border-amber-300 bg-amber-50 hover:bg-amber-100/80 px-2 py-1 text-[11px] font-medium text-amber-900 transition-colors"
+                            className="inline-flex items-center gap-1 rounded-[3px] border border-amber-300 bg-amber-50/70 px-1.5 py-0.5 font-mono text-xs font-medium text-amber-900 hover:bg-amber-100 transition-colors btn-tactile cursor-pointer"
                             title="Nhấn để xem chi tiết văn bản quyết định"
                           >
-                            <FileText className="h-3.5 w-3.5 text-amber-700" />
-                            <span className="font-semibold">{sc.decisionDocument.documentNumber}</span>
-                            {sc.decisionDocument.fileName && (
-                              <Paperclip className="h-3 w-3 text-amber-600" />
-                            )}
+                            <FileText className="w-3.5 h-3.5 text-amber-700 shrink-0" />
+                            <span>{sc.decisionDocument.documentNumber}</span>
+                            <ArrowUpRightIcon className="w-3 h-3 text-amber-600 ml-0.5 shrink-0" />
                           </button>
                         ) : (
                           <span className="text-xs text-zinc-400">—</span>
@@ -599,7 +617,7 @@ export function SoldierProfile({
           {/* ── MODAL XEM CHI TIẾT QUYẾT ĐỊNH ĐÍNH KÈM ── */}
           {viewingDecisionScore && viewingDecisionScore.decisionDocument && (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 animate-in fade-in">
-              <div className="w-full max-w-md rounded-lg border border-zinc-200 bg-white p-5 shadow-xl space-y-4">
+              <div className="w-full max-w-md rounded-[3px] border border-zinc-300 bg-white p-5 shadow-sm space-y-4">
                 <div className="flex items-start justify-between border-b border-zinc-200 pb-2.5">
                   <div className="flex items-center gap-2">
                     <FileText className="h-5 w-5 text-[#b91c1c]" />
@@ -697,15 +715,15 @@ export function SoldierProfile({
               {soldierCommendations.map((item) => (
                 <div key={item.id} className="py-3.5 space-y-1">
                   <div className="flex items-center gap-3">
-                    <span
-                      className={`inline-block text-xs font-semibold px-2 py-0.5 rounded ${
-                        item.type === 'COMMENDATION'
-                          ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
-                          : 'bg-amber-50 text-amber-800 border border-amber-200'
-                      }`}
-                    >
-                      {item.type === 'COMMENDATION' ? '★ BIỂU DƯƠNG' : '⚠ NHẮC NHỞ'}
-                    </span>
+                    {item.type === 'COMMENDATION' ? (
+                      <span className="inline-block rounded-[3px] border border-emerald-300 bg-emerald-50 px-2 py-0.5 text-xs font-bold text-emerald-800">
+                        ★ BIỂU DƯƠNG
+                      </span>
+                    ) : (
+                      <span className="inline-block rounded-[3px] border border-red-300 bg-red-50 px-2 py-0.5 text-xs font-bold text-[#991b1b]">
+                        ⚠ NHẮC NHỞ
+                      </span>
+                    )}
                     <span className="text-xs text-zinc-400 font-mono">{item.date}</span>
                     <span className="text-xs text-zinc-500">Người ghi: {item.createdBy}</span>
                   </div>
@@ -721,12 +739,265 @@ export function SoldierProfile({
 
       {activeTab === 'notes' && (
         <div className="max-w-2xl space-y-3">
-          <p className="text-xs text-zinc-500">
-            Ghi chú theo dõi quá trình rèn luyện, rà soát tư tưởng của cán bộ quản lý đối với quân nhân.
-          </p>
+          <h4 className="text-sm font-semibold text-zinc-900">
+            Nhận xét & Đánh giá của Chỉ huy
+          </h4>
           <div className="rounded border border-zinc-200 p-4 bg-zinc-50/50 text-sm text-zinc-700 leading-relaxed">
             Quân nhân an tâm tư tưởng công tác, chấp hành nghiêm kỷ luật quân đội và quy định của đơn vị.
             Tích cực tham gia các phong trào thi đua của trung đội. Cần tiếp tục phát huy tinh thần tự giác trong bảo quản vũ khí trang bị.
+          </div>
+        </div>
+      )}
+
+      {/* Modal Chỉnh sửa hồ sơ quân nhân toàn diện (Bottom sheet on mobile) */}
+      {isFullEditModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 p-0 sm:p-4 backdrop-blur-xs animate-in fade-in">
+          <div className="w-full max-w-2xl bg-white rounded-t-xl sm:rounded-[3px] border border-zinc-200 shadow-xl overflow-hidden animate-in slide-in-from-bottom sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-200 max-h-[92dvh] flex flex-col">
+            {/* Mobile pull handle */}
+            <div className="mx-auto mt-2 mb-1 h-1.5 w-12 rounded-full bg-zinc-300 sm:hidden" />
+
+            <div className="flex items-center justify-between px-5 py-3 border-b border-zinc-200 bg-zinc-50">
+              <span className="text-sm font-bold text-zinc-900">
+                Chỉnh sửa Hồ sơ Quân nhân — {soldier.name}
+              </span>
+              <button
+                type="button"
+                onClick={() => setIsFullEditModalOpen(false)}
+                className="text-zinc-400 hover:text-zinc-700 p-1.5 rounded"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (!fullFormData.name.trim()) {
+                  notify.error('Thiếu thông tin', 'Vui lòng nhập họ và tên quân nhân.');
+                  return;
+                }
+                const updated: Soldier = {
+                  ...soldier,
+                  name: fullFormData.name.trim(),
+                  rank: fullFormData.rank,
+                  roleTitle: fullFormData.roleTitle,
+                  militaryCode: fullFormData.militaryCode.trim(),
+                  idCardNumber: fullFormData.idCardNumber.trim(),
+                  dob: fullFormData.dob,
+                  gender: fullFormData.gender,
+                  hometown: fullFormData.hometown.trim(),
+                  phone: fullFormData.phone.trim(),
+                  joinDate: fullFormData.joinDate,
+                  partyStatus: fullFormData.partyStatus,
+                  partyJoinDate: fullFormData.partyJoinDate.trim() || undefined,
+                  officialDate: fullFormData.officialDate.trim() || undefined,
+                  squadName: fullFormData.squadName,
+                  platoonName: fullFormData.platoonName,
+                };
+                onUpdateSoldier?.(updated);
+                setIsFullEditModalOpen(false);
+                notify.success('Cập nhật thành công', `Đã lưu hồ sơ quân nhân ${updated.name}`);
+              }}
+              className="p-5 overflow-y-auto space-y-4 text-xs"
+            >
+              {/* Nhóm 1: Thông tin cá nhân */}
+              <div>
+                <h5 className="font-bold text-zinc-800 uppercase tracking-wider text-[11px] mb-2 pb-1 border-b border-zinc-100">
+                  1. Thông tin cá nhân
+                </h5>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="sm:col-span-2">
+                    <label className="block text-zinc-700 font-medium mb-1">Họ và tên</label>
+                    <input
+                      type="text"
+                      value={fullFormData.name}
+                      onChange={(e) => setFullFormData({ ...fullFormData, name: e.target.value })}
+                      className="w-full px-2.5 py-1.5 border border-zinc-300 rounded-[3px] focus:outline-none focus:border-[#b91c1c] text-zinc-900 font-medium"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-zinc-700 font-medium mb-1">Giới tính</label>
+                    <select
+                      value={fullFormData.gender}
+                      onChange={(e) => setFullFormData({ ...fullFormData, gender: e.target.value })}
+                      className="w-full px-2.5 py-1.5 border border-zinc-300 rounded-[3px] focus:outline-none focus:border-[#b91c1c] text-zinc-900 bg-white"
+                    >
+                      <option value="Nam">Nam</option>
+                      <option value="Nữ">Nữ</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-zinc-700 font-medium mb-1">Ngày sinh</label>
+                    <input
+                      type="text"
+                      value={fullFormData.dob}
+                      onChange={(e) => setFullFormData({ ...fullFormData, dob: e.target.value })}
+                      placeholder="DD/MM/YYYY"
+                      className="w-full px-2.5 py-1.5 border border-zinc-300 rounded-[3px] focus:outline-none focus:border-[#b91c1c] text-zinc-900 font-mono"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-zinc-700 font-medium mb-1">Số CCCD / CMND</label>
+                    <input
+                      type="text"
+                      value={fullFormData.idCardNumber}
+                      onChange={(e) => setFullFormData({ ...fullFormData, idCardNumber: e.target.value })}
+                      className="w-full px-2.5 py-1.5 border border-zinc-300 rounded-[3px] focus:outline-none focus:border-[#b91c1c] text-zinc-900 font-mono"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-zinc-700 font-medium mb-1">Số điện thoại</label>
+                    <input
+                      type="text"
+                      value={fullFormData.phone}
+                      onChange={(e) => setFullFormData({ ...fullFormData, phone: e.target.value })}
+                      className="w-full px-2.5 py-1.5 border border-zinc-300 rounded-[3px] focus:outline-none focus:border-[#b91c1c] text-zinc-900 font-mono"
+                    />
+                  </div>
+
+                  <div className="sm:col-span-3">
+                    <label className="block text-zinc-700 font-medium mb-1">Quê quán</label>
+                    <input
+                      type="text"
+                      value={fullFormData.hometown}
+                      onChange={(e) => setFullFormData({ ...fullFormData, hometown: e.target.value })}
+                      className="w-full px-2.5 py-1.5 border border-zinc-300 rounded-[3px] focus:outline-none focus:border-[#b91c1c] text-zinc-900"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Nhóm 2: Thông tin Quân sự */}
+              <div>
+                <h5 className="font-bold text-zinc-800 uppercase tracking-wider text-[11px] mb-2 pb-1 border-b border-zinc-100">
+                  2. Thông tin Quân sự & Đơn vị
+                </h5>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-zinc-700 font-medium mb-1">Cấp bậc</label>
+                    <select
+                      value={fullFormData.rank}
+                      onChange={(e) => setFullFormData({ ...fullFormData, rank: e.target.value })}
+                      className="w-full px-2.5 py-1.5 border border-zinc-300 rounded-[3px] focus:outline-none focus:border-[#b91c1c] text-zinc-900 bg-white"
+                    >
+                      {RANKS.map((r) => (
+                        <option key={r} value={r}>{r}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-zinc-700 font-medium mb-1">Chức vụ</label>
+                    <select
+                      value={fullFormData.roleTitle}
+                      onChange={(e) => setFullFormData({ ...fullFormData, roleTitle: e.target.value })}
+                      className="w-full px-2.5 py-1.5 border border-zinc-300 rounded-[3px] focus:outline-none focus:border-[#b91c1c] text-zinc-900 bg-white"
+                    >
+                      {ROLES.map((r) => (
+                        <option key={r} value={r}>{r}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-zinc-700 font-medium mb-1">Số thẻ quân nhân</label>
+                    <input
+                      type="text"
+                      value={fullFormData.militaryCode}
+                      onChange={(e) => setFullFormData({ ...fullFormData, militaryCode: e.target.value })}
+                      className="w-full px-2.5 py-1.5 border border-zinc-300 rounded-[3px] focus:outline-none focus:border-[#b91c1c] text-zinc-900 font-mono font-medium"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-zinc-700 font-medium mb-1">Phân đội (Tiểu đội)</label>
+                    <input
+                      type="text"
+                      value={fullFormData.squadName}
+                      onChange={(e) => setFullFormData({ ...fullFormData, squadName: e.target.value })}
+                      className="w-full px-2.5 py-1.5 border border-zinc-300 rounded-[3px] focus:outline-none focus:border-[#b91c1c] text-zinc-900"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-zinc-700 font-medium mb-1">Trung đội</label>
+                    <input
+                      type="text"
+                      value={fullFormData.platoonName}
+                      onChange={(e) => setFullFormData({ ...fullFormData, platoonName: e.target.value })}
+                      className="w-full px-2.5 py-1.5 border border-zinc-300 rounded-[3px] focus:outline-none focus:border-[#b91c1c] text-zinc-900"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-zinc-700 font-medium mb-1">Ngày nhập ngũ</label>
+                    <input
+                      type="text"
+                      value={fullFormData.joinDate}
+                      onChange={(e) => setFullFormData({ ...fullFormData, joinDate: e.target.value })}
+                      placeholder="DD/MM/YYYY"
+                      className="w-full px-2.5 py-1.5 border border-zinc-300 rounded-[3px] focus:outline-none focus:border-[#b91c1c] text-zinc-900 font-mono"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Nhóm 3: Thông tin Chính trị */}
+              <div>
+                <h5 className="font-bold text-zinc-800 uppercase tracking-wider text-[11px] mb-2 pb-1 border-b border-zinc-100">
+                  3. Đoàn / Đảng & Chính trị
+                </h5>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-zinc-700 font-medium mb-1">Tình trạng Đoàn/Đảng</label>
+                    <select
+                      value={fullFormData.partyStatus}
+                      onChange={(e) => setFullFormData({ ...fullFormData, partyStatus: e.target.value })}
+                      className="w-full px-2.5 py-1.5 border border-zinc-300 rounded-[3px] focus:outline-none focus:border-[#b91c1c] text-zinc-900 bg-white"
+                    >
+                      {PARTY_STATUSES.map((p) => (
+                        <option key={p} value={p}>{p}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-zinc-700 font-medium mb-1">Ngày vào Đảng</label>
+                    <input
+                      type="text"
+                      value={fullFormData.partyJoinDate}
+                      onChange={(e) => setFullFormData({ ...fullFormData, partyJoinDate: e.target.value })}
+                      placeholder="DD/MM/YYYY"
+                      className="w-full px-2.5 py-1.5 border border-zinc-300 rounded-[3px] focus:outline-none focus:border-[#b91c1c] text-zinc-900 font-mono"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-zinc-700 font-medium mb-1">Ngày chính thức</label>
+                    <input
+                      type="text"
+                      value={fullFormData.officialDate}
+                      onChange={(e) => setFullFormData({ ...fullFormData, officialDate: e.target.value })}
+                      placeholder="DD/MM/YYYY"
+                      className="w-full px-2.5 py-1.5 border border-zinc-300 rounded-[3px] focus:outline-none focus:border-[#b91c1c] text-zinc-900 font-mono"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-zinc-100">
+                <button
+                  type="button"
+                  onClick={() => setIsFullEditModalOpen(false)}
+                  className="px-3.5 py-1.5 border border-zinc-300 text-zinc-700 rounded-[3px] hover:bg-zinc-50 font-medium"
+                >
+                  Hủy
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-1.5 bg-[#b91c1c] text-white rounded-[3px] hover:bg-[#991b1b] font-semibold"
+                >
+                  Lưu hồ sơ
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

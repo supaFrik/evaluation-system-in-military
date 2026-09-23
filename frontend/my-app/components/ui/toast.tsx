@@ -182,19 +182,32 @@ function ToastIcon({ type }: { type: string | undefined }) {
 function ToastList() {
   const { toasts } = ToastPrimitive.useToastManager()
 
-  return toasts.map((toastItem) => (
-    <Toast key={toastItem.id} toast={toastItem}>
-      <ToastContent>
-        <ToastIcon type={toastItem.type} />
-        <div className="flex min-w-0 flex-1 flex-col gap-1">
-          <ToastTitle />
-          <ToastDescription />
-        </div>
-        <ToastAction />
-        <ToastClose />
-      </ToastContent>
-    </Toast>
-  ))
+  return toasts.map((toastItem) => {
+    let typeClasses = ""
+    if (toastItem.type === "success") {
+      typeClasses = "border-emerald-300 bg-emerald-50/95 text-emerald-950 dark:bg-emerald-950 dark:text-emerald-100 dark:border-emerald-800 [&_[data-slot=toast-icon]]:text-emerald-600 [&_[data-slot=toast-description]]:text-emerald-800 dark:[&_[data-slot=toast-description]]:text-emerald-300"
+    } else if (toastItem.type === "error") {
+      typeClasses = "border-red-300 bg-red-50/95 text-red-950 dark:bg-red-950 dark:text-red-100 dark:border-red-800 [&_[data-slot=toast-icon]]:text-red-600 [&_[data-slot=toast-description]]:text-red-800 dark:[&_[data-slot=toast-description]]:text-red-300"
+    } else if (toastItem.type === "warning" || toastItem.type === "loading") {
+      typeClasses = "border-amber-300 bg-amber-50/95 text-amber-950 dark:bg-amber-950 dark:text-amber-100 dark:border-amber-800 [&_[data-slot=toast-icon]]:text-amber-600 [&_[data-slot=toast-description]]:text-amber-800 dark:[&_[data-slot=toast-description]]:text-amber-300"
+    } else if (toastItem.type === "info") {
+      typeClasses = "border-sky-300 bg-sky-50/95 text-sky-950 dark:bg-sky-950 dark:text-sky-100 dark:border-sky-800 [&_[data-slot=toast-icon]]:text-sky-600 [&_[data-slot=toast-description]]:text-sky-800 dark:[&_[data-slot=toast-description]]:text-sky-300"
+    }
+
+    return (
+      <Toast key={toastItem.id} toast={toastItem} className={cn("shadow-lg backdrop-blur-xs", typeClasses)}>
+        <ToastContent>
+          <ToastIcon type={toastItem.type} />
+          <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+            <ToastTitle />
+            <ToastDescription />
+          </div>
+          <ToastAction />
+          <ToastClose />
+        </ToastContent>
+      </Toast>
+    )
+  })
 }
 
 function Toaster({

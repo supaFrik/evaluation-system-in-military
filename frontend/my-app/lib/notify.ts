@@ -1,47 +1,48 @@
-import { toast as sonnerToast } from 'sonner';
-import { CheckCircle2, XCircle, Clock, AlertTriangle } from 'lucide-react';
-import React from 'react';
+import { toast } from '@/components/ui/toast';
 
 /**
- * Wrapper around Sonner toast with 3 semantic states:
- *  - success: xanh lá — thao tác thành công
- *  - error:   đỏ     — thao tác thất bại
- *  - pending: vàng   — đang chờ xử lý / cần xác nhận
+ * Semantic notify utility based on Base UI toast (@/components/ui/toast):
+ * - success: xanh lá — thao tác thành công
+ * - error:   đỏ     — thao tác thất bại
+ * - pending: vàng/loading — đang chờ xử lý
+ * - warning: vàng cam — cảnh báo
+ * - info:    xanh dương/trung tính — thông tin
  */
 export const notify = {
-  success: (message: string, description?: string) =>
-    sonnerToast.success(message, {
+  success: (title: string, description?: string) =>
+    toast.add({
+      type: 'success',
+      title,
       description,
-      style: {
-        backgroundColor: '#f0fdf4',
-        border: '1px solid #bbf7d0',
-        color: '#15803d',
-      },
-      icon: React.createElement(CheckCircle2, { className: 'h-4 w-4 text-emerald-600' }),
     }),
 
-  error: (message: string, description?: string) =>
-    sonnerToast.error(message, {
+  error: (title: string, description?: string) =>
+    toast.add({
+      type: 'error',
+      title,
       description,
-      style: {
-        backgroundColor: '#fef2f2',
-        border: '1px solid #fecaca',
-        color: '#b91c1c',
-      },
-      icon: React.createElement(XCircle, { className: 'h-4 w-4 text-red-700' }),
     }),
 
-  pending: (message: string, description?: string) =>
-    sonnerToast.warning(message, {
+  pending: (title: string, description?: string) =>
+    toast.add({
+      type: 'loading',
+      title,
       description,
-      style: {
-        backgroundColor: '#fefce8',
-        border: '1px solid #fde68a',
-        color: '#92400e',
-      },
-      icon: React.createElement(Clock, { className: 'h-4 w-4 text-amber-600' }),
     }),
 
-  info: (message: string, description?: string) =>
-    sonnerToast.info(message, { description }),
+  warning: (title: string, description?: string) =>
+    toast.add({
+      type: 'warning',
+      title,
+      description,
+    }),
+
+  info: (title: string, description?: string) =>
+    toast.add({
+      type: 'info',
+      title,
+      description,
+    }),
 };
+
+export { toast };

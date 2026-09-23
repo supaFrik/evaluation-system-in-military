@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { EmulationCriterion } from '@/lib/types';
 import { Plus, Pencil, Trash2, CheckCircle2, AlertCircle, ToggleLeft, ToggleRight, X, ShieldAlert } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 import { notify } from '@/lib/notify';
 
 interface CriteriaHandbookProps {
@@ -133,27 +134,18 @@ export function CriteriaHandbook({
 
   return (
     <div className="w-full max-w-5xl py-2 space-y-6">
-      {/* ── Header ──────────────────────────────────────────────────────── */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-zinc-200 pb-4">
-        <div>
-          <h2 className="text-xl font-bold text-zinc-900 tracking-tight flex items-center gap-2">
-            <span>Danh mục Tiêu chí Thi đua & Cẩm nang Quy chế</span>
-          </h2>
-          <p className="text-xs text-zinc-500 mt-1">
-            Quy định các tiêu chuẩn chấm điểm thi đua hằng ngày của đơn vị. Chỉ huy có thẩm quyền cấu hình thang điểm và tiêu chí.
-          </p>
-        </div>
-
-        {canManage && (
+      {/* ── Actions ──────────────────────────────────────────────────────── */}
+      {canManage && (
+        <div className="flex items-center justify-end border-b border-zinc-200 pb-3">
           <button
             onClick={openCreateModal}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-[#b91c1c] hover:bg-[#991b1b] rounded transition shadow-sm self-start sm:self-auto"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-[#b91c1c] hover:bg-[#991b1b] rounded transition shadow-sm self-start sm:self-auto btn-tactile cursor-pointer"
           >
             <Plus className="w-3.5 h-3.5" />
             <span>Thêm tiêu chí mới</span>
           </button>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* ── Summary Stats Strip ────────────────────────────────────────── */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-zinc-50 border border-zinc-200 rounded p-3 text-xs">
@@ -191,23 +183,23 @@ export function CriteriaHandbook({
             <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 border-b border-zinc-100 pb-3">
               <div className="space-y-1">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <span className="font-mono text-xs font-bold px-1.5 py-0.5 rounded bg-zinc-100 text-zinc-700 border border-zinc-200">
+                  <span className="rounded-[3px] border border-zinc-300 bg-zinc-100 px-1.5 py-0.5 font-mono text-xs font-bold text-zinc-800">
                     {crit.code}
                   </span>
                   <h3 className="text-sm font-bold text-zinc-900">
                     {idx + 1}. {crit.name}
                   </h3>
-                  <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-red-50 text-[#b91c1c] border border-red-200">
+                  <span className="rounded-[3px] border border-red-200 bg-red-50 px-1.5 py-0.5 text-xs font-medium text-[#991b1b]">
                     Thang điểm: {crit.maxScore}
                   </span>
                   {crit.isActive ? (
-                    <span className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
-                      <CheckCircle2 className="w-3 h-3" />
+                    <span className="inline-flex items-center gap-1 rounded-[3px] border border-emerald-300 bg-emerald-50 px-1.5 py-0.5 text-xs font-medium text-emerald-800">
+                      <CheckCircle2 className="w-3 h-3 text-emerald-600" />
                       Đang áp dụng
                     </span>
                   ) : (
-                    <span className="inline-flex items-center gap-1 text-[11px] font-medium text-zinc-500 bg-zinc-200 px-2 py-0.5 rounded">
-                      <AlertCircle className="w-3 h-3" />
+                    <span className="inline-flex items-center gap-1 rounded-[3px] border border-zinc-300 bg-zinc-100 px-1.5 py-0.5 text-xs text-zinc-600">
+                      <AlertCircle className="w-3 h-3 text-zinc-500" />
                       Tạm ngưng
                     </span>
                   )}
@@ -220,7 +212,7 @@ export function CriteriaHandbook({
                   <button
                     onClick={() => onToggleCriterion && onToggleCriterion(crit.id)}
                     title={crit.isActive ? 'Tạm ngưng tiêu chí này' : 'Kích hoạt tiêu chí này'}
-                    className={`p-1.5 rounded border text-xs font-medium flex items-center gap-1 transition ${
+                    className={`p-1.5 rounded border text-xs font-medium flex items-center gap-1 transition btn-tactile cursor-pointer ${
                       crit.isActive
                         ? 'border-zinc-300 text-zinc-600 hover:bg-zinc-100'
                         : 'border-emerald-300 text-emerald-700 bg-emerald-50 hover:bg-emerald-100'
@@ -229,26 +221,26 @@ export function CriteriaHandbook({
                     {crit.isActive ? (
                       <>
                         <ToggleRight className="w-4 h-4 text-emerald-600" />
-                        <span className="text-[11px]">Bật</span>
+                        <span className="text-xs">Bật</span>
                       </>
                     ) : (
                       <>
                         <ToggleLeft className="w-4 h-4 text-zinc-400" />
-                        <span className="text-[11px]">Tắt</span>
+                        <span className="text-xs">Tắt</span>
                       </>
                     )}
                   </button>
                   <button
                     onClick={() => openEditModal(crit)}
                     title="Chỉnh sửa tiêu chí"
-                    className="p-1.5 rounded border border-zinc-200 text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100 transition"
+                    className="p-1.5 rounded border border-zinc-200 text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100 transition btn-tactile cursor-pointer"
                   >
                     <Pencil className="w-3.5 h-3.5" />
                   </button>
                   <button
                     onClick={() => handleDelete(crit)}
                     title="Xóa tiêu chí"
-                    className="p-1.5 rounded border border-red-200 text-red-600 hover:bg-red-50 transition"
+                    className="p-1.5 rounded border border-red-200 text-red-600 hover:bg-red-50 transition btn-tactile cursor-pointer"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>
@@ -258,7 +250,7 @@ export function CriteriaHandbook({
 
             {/* Deduction rules list */}
             <div className="mt-3">
-              <span className="text-[11px] font-semibold text-zinc-700 uppercase tracking-wide block mb-1">
+              <span className="text-xs font-semibold text-zinc-700 tracking-wide block mb-1">
                 Các nội dung kiểm tra & quy định trừ/cộng điểm:
               </span>
               {crit.deductionRules && crit.deductionRules.length > 0 ? (
@@ -275,11 +267,13 @@ export function CriteriaHandbook({
         ))}
       </div>
 
-      {/* ── Modal Add / Edit Criterion ─────────────────────────────────── */}
+      {/* ── Modal Add / Edit Criterion (Bottom sheet on mobile) ───────────────── */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 animate-in fade-in duration-150">
-          <div className="bg-white rounded-lg shadow-xl border border-zinc-200 w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh]">
-            <div className="px-5 py-4 border-b border-zinc-200 flex items-center justify-between bg-zinc-50">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 p-0 sm:p-4 animate-in fade-in backdrop-blur-xs">
+          <div className="bg-white rounded-t-xl sm:rounded-[3px] shadow-lg border border-zinc-300 w-full max-w-lg overflow-hidden flex flex-col max-h-[92dvh] animate-in slide-in-from-bottom sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-200">
+            {/* Mobile pull handle */}
+            <div className="mx-auto mt-2 mb-1 h-1.5 w-12 rounded-full bg-zinc-300 sm:hidden" />
+            <div className="flex items-center justify-between border-b border-zinc-200 p-4 bg-zinc-50/50">
               <div className="flex items-center gap-2">
                 <ShieldAlert className="w-5 h-5 text-[#b91c1c]" />
                 <h3 className="font-bold text-zinc-900 text-sm">
@@ -288,7 +282,7 @@ export function CriteriaHandbook({
               </div>
               <button
                 onClick={() => setIsModalOpen(false)}
-                className="text-zinc-400 hover:text-zinc-700 p-1 rounded"
+                className="text-zinc-400 hover:text-zinc-700 p-1 rounded cursor-pointer btn-tactile"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -326,18 +320,38 @@ export function CriteriaHandbook({
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <label className="font-semibold text-zinc-700 block">
-                    Thang điểm tối đa (chuẩn) <span className="text-red-500">*</span>
-                  </label>
+                  <div className="flex items-center justify-between">
+                    <label className="font-semibold text-zinc-700 block">
+                      Thang điểm tối đa <span className="text-red-500">*</span>
+                    </label>
+                  </div>
                   <input
                     type="number"
-                    min={10}
-                    max={500}
+                    min={1}
+                    max={1000}
                     required
-                    value={formData.maxScore}
-                    onChange={(e) => setFormData({ ...formData, maxScore: Number(e.target.value) })}
-                    className="w-full px-3 py-1.5 border border-zinc-300 rounded text-xs focus:ring-1 focus:ring-red-600 focus:outline-none"
+                    placeholder="Nhập thang điểm (VD: 20, 25, 50, 100...)"
+                    value={formData.maxScore === 0 ? '' : formData.maxScore}
+                    onChange={(e) => setFormData({ ...formData, maxScore: e.target.value === '' ? 0 : Number(e.target.value) })}
+                    className="w-full px-3 py-1.5 border border-zinc-300 rounded text-xs font-mono font-bold text-zinc-900 focus:ring-1 focus:ring-red-600 focus:outline-none"
                   />
+                  <div className="flex items-center gap-1 pt-1 flex-wrap">
+                    <span className="text-[10.5px] text-zinc-400">Gợi ý nhanh:</span>
+                    {[20, 25, 50, 100, 200].map((score) => (
+                      <button
+                        key={score}
+                        type="button"
+                        onClick={() => setFormData({ ...formData, maxScore: score })}
+                        className={`px-1.5 py-0.5 rounded-[2px] border font-mono text-[10.5px] btn-tactile cursor-pointer transition-colors ${
+                          formData.maxScore === score
+                            ? 'bg-[#b91c1c] text-white border-[#b91c1c] font-bold'
+                            : 'bg-zinc-100 text-zinc-700 border-zinc-200 hover:bg-zinc-200'
+                        }`}
+                      >
+                        {score}đ
+                      </button>
+                    ))}
+                  </div>
                 </div>
                 <div className="space-y-1">
                   <label className="font-semibold text-zinc-700 block">Phân nhóm lĩnh vực</label>
@@ -349,7 +363,7 @@ export function CriteriaHandbook({
                         category: e.target.value as 'CHINH_TRI' | 'QUAN_SU' | 'HAU_CAN' | 'KY_LUAT' | 'KHAC',
                       })
                     }
-                    className="w-full px-3 py-1.5 border border-zinc-300 rounded text-xs focus:ring-1 focus:ring-red-600 focus:outline-none bg-white"
+                    className="w-full px-3 py-1.5 border border-zinc-300 rounded text-xs focus:ring-1 focus:ring-red-600 focus:outline-none bg-white cursor-pointer"
                   >
                     <option value="CHINH_TRI">Chính trị, tư tưởng</option>
                     <option value="QUAN_SU">Quân sự, huấn luyện</option>
@@ -401,13 +415,13 @@ export function CriteriaHandbook({
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="px-3 py-1.5 text-xs text-zinc-600 hover:text-zinc-900 border border-zinc-300 rounded hover:bg-zinc-50"
+                  className="px-3 py-1.5 text-xs text-zinc-600 hover:text-zinc-900 border border-zinc-300 rounded hover:bg-zinc-50 btn-tactile cursor-pointer"
                 >
                   Hủy
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-1.5 text-xs text-white bg-[#b91c1c] hover:bg-[#991b1b] rounded font-medium shadow-sm"
+                  className="px-4 py-1.5 text-xs text-white bg-[#b91c1c] hover:bg-[#991b1b] rounded font-medium shadow-sm btn-tactile cursor-pointer"
                 >
                   {editingCriterion ? 'Lưu thay đổi' : 'Tạo tiêu chí'}
                 </button>

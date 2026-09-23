@@ -1,17 +1,38 @@
 export type UserRole = 'COMMANDER' | 'SCORER' | 'SOLDIER';
 
+// ── Cấp đơn vị trong hệ thống phân cấp Quân đội ──────────────────
+export type UnitTier = 'REGIMENT' | 'BATTALION' | 'COMPANY' | 'PLATOON' | 'SQUAD';
+
+// ── Thực thể đơn vị quân đội phân cấp ─────────────────────────────
+export interface MilitaryUnit {
+  id: string;
+  name: string; // VD: Tiểu đoàn BB4, Đại đội 1, Trung đội 1, Tiểu đội 1
+  code: string; // VD: dBB4, C1, B1, A1
+  tier: UnitTier;
+  parentId?: string; // ID đơn vị cấp trên trực tiếp (Trung đoàn ko có parent)
+  leaderTitle: string; // Tiểu đoàn trưởng, Đại đội trưởng...
+  leaderName: string;
+  totalSoldiers: number;
+}
+
+// ── Tài khoản người dùng (mở rộng phạm vi phân quyền) ─────────────
 export interface UserAccount {
   id: string;
   username: string;
   name: string;
   rank: string; // Cấp bậc (Đại úy, Trung sĩ, Binh nhất...)
   role: UserRole;
-  roleTitle: string; // Chức vụ: Đại đội trưởng, Tiểu đội trưởng, Chiến sĩ
+  roleTitle: string; // Chức vụ: Trung đoàn trưởng, Tiểu đoàn trưởng, Đại đội trưởng...
   soldierId?: string; // Liên kết với hồ sơ quân nhân nếu là SOLDIER
-  platoonId?: string;
+  platoonId?: string; // backward compat
   phone?: string;
+  avatarUrl?: string;
+  // Mở rộng phạm vi phân quyền phân cấp
+  unitScopeTier?: UnitTier; // Cấp đơn vị phụ trách
+  assignedUnitId?: string; // ID đơn vị được giao quyền
 }
 
+// ── Platoon cũ (backward compat — sẽ bị thay thế bởi MilitaryUnit) ─
 export interface Platoon {
   id: string;
   name: string; // Trung đội 1, Trung đội 2, Trung đội 3
@@ -20,6 +41,7 @@ export interface Platoon {
   totalSoldiers: number;
 }
 
+// ── Quân nhân (mở rộng liên kết phân cấp đầy đủ) ──────────────────
 export interface Soldier {
   id: string;
   name: string;
@@ -27,8 +49,15 @@ export interface Soldier {
   gender: string; // Nam
   rank: string; // Binh nhất, Binh nhì, Hạ sĩ, Trung sĩ
   roleTitle: string; // Chiến sĩ, Tiểu đội trưởng...
+  // ─ Liên kết phân cấp mới ─
+  battalionId?: string;
+  battalionName?: string;
+  companyId?: string;
+  companyName?: string;
+  // ─ Liên kết gốc ─
   platoonId: string;
   platoonName: string;
+  squadId?: string;
   squadName: string; // Tiểu đội 1, 2, 3
   joinDate: string; // Ngày nhập ngũ
   officialDate?: string; // Ngày chính thức
@@ -46,6 +75,7 @@ export interface ViolationRecord {
   category: 'chinh_tri' | 'nhiem_vu' | 'noi_vu' | 'tac_phong';
   content: string;
   points: number; // Điểm trừ (âm) hoặc cộng (dương)
+  criterionId?: string; // ID tiêu chí bị trừ điểm để hoàn điểm chính xác khi xóa
 }
 
 export interface EmulationCriterion {
@@ -127,6 +157,7 @@ export interface DailyLockStatus {
   }[];
 }
 
+// ── Bảng tổng hợp thi đua cũ (backward compat) ────────────────────
 export interface PlatoonAggregate {
   platoonId: string;
   platoonName: string;
@@ -141,3 +172,19 @@ export interface PlatoonAggregate {
   generalRemark: string; // Nhận xét chung
 }
 
+// ── Bảng tổng hợp thi đua phân cấp (Adaptive Matrix) ──────────────
+export interface UnitAggregate {
+  unitId: string;
+  unitName: string;
+  unitCode: string;
+  tier: UnitTier;
+  totalSoldiers: number;
+  avgPolitical: number;
+  avgTask: number;
+  avgHygiene: number;
+  avgBearing: number;
+  avgTotal: number;
+  avgCriteriaScores?: Record<string, number>;
+  rank: number;
+  generalRemark: string;
+}

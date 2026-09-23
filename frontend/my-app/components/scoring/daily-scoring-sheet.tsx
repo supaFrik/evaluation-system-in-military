@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import Image from 'next/image';
 import {
   Soldier,
   DailyScore,
@@ -9,7 +10,9 @@ import {
   ViolationRecord,
   EmulationCriterion,
   DailyLockStatus,
+  UnitTier,
 } from '@/lib/types';
+import CascadingUnitSelector from '@/components/layout/cascading-unit-selector';
 import { QUICK_VIOLATION_PRESETS } from '@/lib/mock-data';
 import {
   Table,
@@ -38,7 +41,9 @@ import {
   ShieldCheck,
   AlertTriangle,
   History,
+  ArrowUpRightIcon,
 } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 import { notify } from '@/lib/notify';
 
 interface DailyScoringSheetProps {
@@ -56,6 +61,10 @@ interface DailyScoringSheetProps {
   onLockDate?: (date: string, note: string) => void;
   onUnlockDate?: (date: string, reason: string) => void;
   onNavigateToCriteria?: () => void;
+  selectedUnitId?: string;
+  selectedTier?: UnitTier;
+  onSelectUnit?: (unitId: string, tier: UnitTier) => void;
+  allowedRootId?: string;
 }
 
 interface InlineEditState {
@@ -79,8 +88,23 @@ export function DailyScoringSheet({
   onLockDate,
   onUnlockDate,
   onNavigateToCriteria,
+  selectedUnitId: propSelectedUnitId,
+  selectedTier: propSelectedTier,
+  onSelectUnit: propOnSelectUnit,
+  allowedRootId,
 }: DailyScoringSheetProps) {
-  const [selectedPlatoonId, setSelectedPlatoonId] = useState<string>(platoons[0]?.id || 'td1');
+  const [localUnitId, setLocalUnitId] = useState<string>('C1');
+  const activeUnitId = propSelectedUnitId ?? localUnitId;
+
+  const handleUnitSelect = (unitId: string, tier: UnitTier) => {
+    if (propOnSelectUnit) {
+      propOnSelectUnit(unitId, tier);
+    } else {
+      setLocalUnitId(unitId);
+    }
+    setInlineEditState(null);
+  };
+
   const [localScores, setLocalScores] = useState<Record<string, DailyScore>>({});
   const [inlineEditState, setInlineEditState] = useState<InlineEditState | null>(null);
 
@@ -100,7 +124,20 @@ export function DailyScoringSheet({
   const [violationTargetCrit, setViolationTargetCrit] = useState<string>('');
 
   const activeCriteria = criteria.filter((c) => c.isActive);
-  const platoonSoldiers = soldiers.filter((s) => s.platoonId === selectedPlatoonId);
+
+  // Filter soldiers belonging to the selected unit (or all soldiers if regiment selected)
+  const platoonSoldiers = React.useMemo(() => {
+    if (activeUnitId === 'e335') return soldiers;
+    const matched = soldiers.filter(
+      (s) =>
+        s.battalionId === activeUnitId ||
+        s.companyId === activeUnitId ||
+        s.platoonId === activeUnitId ||
+        s.squadId === activeUnitId
+    );
+    return matched;
+  }, [soldiers, activeUnitId]);
+
   const isLocked = lockStatus.isLocked;
 
   // Compute or get soldier score with dynamic criteria
@@ -168,13 +205,11 @@ export function DailyScoringSheet({
       [crit.id]: clamped,
     };
 
-    // Calculate new total
-    const criteriaTotal = activeCriteria.reduce(
+    // Calculate new total based solely on criteria scores (deductions already applied to criteria)
+    const newTotal = activeCriteria.reduce(
       (sum, c) => sum + (updatedCritScores[c.id] ?? c.maxScore),
       0
     );
-    const violationDeductions = (current.violations || []).reduce((acc, v) => acc + v.points, 0);
-    const newTotal = Math.max(0, criteriaTotal + violationDeductions);
 
     const updated: DailyScore = {
       ...current,
@@ -223,12 +258,11 @@ export function DailyScoringSheet({
   const handleSaveModal = () => {
     if (!dialogScore || !editingSoldier) return;
     const critScores = dialogScore.criteriaScores || {};
-    const critTotal = activeCriteria.reduce(
+    // Total is sum of criteria (points already deducted directly in criteriaScores)
+    const totalScore = activeCriteria.reduce(
       (sum, c) => sum + (critScores[c.id] ?? c.maxScore),
       0
     );
-    const violationSum = (dialogScore.violations || []).reduce((sum, v) => sum + v.points, 0);
-    const totalScore = Math.max(0, critTotal + violationSum);
 
     const updated: DailyScore = {
       ...dialogScore,
@@ -245,26 +279,28 @@ export function DailyScoringSheet({
   // Add violation inside modal
   const handleAddViolation = (content: string, points: number, critId?: string) => {
     if (!dialogScore || !content.trim()) return;
+
+    const targetCritId = critId || violationTargetCrit || activeCriteria[0]?.id;
+    const targetCrit = activeCriteria.find((c) => c.id === targetCritId) || activeCriteria[0];
+
     const newViolation: ViolationRecord = {
       id: `v-${Date.now()}`,
-      category: 'tac_phong',
+      category: (targetCrit.category ? targetCrit.category.toLowerCase() : 'tac_phong') as any,
       content: content.trim(),
       points,
+      criterionId: targetCrit.id,
     };
 
-    const targetCritId = critId || activeCriteria[0]?.id;
-    const targetCrit = activeCriteria.find((c) => c.id === targetCritId) || activeCriteria[0];
     const currentCritScores = { ...(dialogScore.criteriaScores || {}) };
     const oldScore = currentCritScores[targetCrit.id] ?? targetCrit.maxScore;
     const newScore = Math.max(0, Math.min(targetCrit.maxScore, oldScore + points));
     currentCritScores[targetCrit.id] = newScore;
 
     const nextViolations = [...dialogScore.violations, newViolation];
-    const critTotal = activeCriteria.reduce(
+    const totalScore = activeCriteria.reduce(
       (sum, c) => sum + (currentCritScores[c.id] ?? c.maxScore),
       0
     );
-    const totalScore = Math.max(0, critTotal);
 
     setDialogScore({
       ...dialogScore,
@@ -283,10 +319,81 @@ export function DailyScoringSheet({
     const v = dialogScore.violations.find((x) => x.id === violationId);
     if (!v) return;
 
+    // Restore or revoke points according to original sign
+    const targetCritId =
+      v.criterionId ||
+      (v.category === 'chinh_tri'
+        ? 'c_political'
+        : v.category === 'nhiem_vu'
+        ? 'c_task'
+        : v.category === 'noi_vu'
+        ? 'c_hygiene'
+        : 'c_bearing');
+    const targetCrit = activeCriteria.find((c) => c.id === targetCritId) || activeCriteria[0];
+
+    const currentCritScores = { ...(dialogScore.criteriaScores || {}) };
+    const oldScore = currentCritScores[targetCrit.id] ?? targetCrit.maxScore;
+    // Reversing impact: oldScore - v.points
+    const newScore = Math.max(0, Math.min(targetCrit.maxScore, oldScore - v.points));
+    currentCritScores[targetCrit.id] = newScore;
+
     const nextViolations = dialogScore.violations.filter((x) => x.id !== violationId);
+    const totalScore = activeCriteria.reduce(
+      (sum, c) => sum + (currentCritScores[c.id] ?? c.maxScore),
+      0
+    );
+
     setDialogScore({
       ...dialogScore,
+      criteriaScores: currentCritScores,
+      politicalScore: currentCritScores['c_political'] ?? dialogScore.politicalScore,
+      taskScore: currentCritScores['c_task'] ?? dialogScore.taskScore,
+      hygieneScore: currentCritScores['c_hygiene'] ?? dialogScore.hygieneScore,
+      bearingScore: currentCritScores['c_bearing'] ?? dialogScore.bearingScore,
       violations: nextViolations,
+      totalScore,
+    });
+  };
+
+  const handleEditViolationPoints = (violationId: string, newPoints: number) => {
+    if (!dialogScore) return;
+    const v = dialogScore.violations.find((x) => x.id === violationId);
+    if (!v) return;
+
+    const diff = newPoints - v.points;
+    const targetCritId =
+      v.criterionId ||
+      (v.category === 'chinh_tri'
+        ? 'c_political'
+        : v.category === 'nhiem_vu'
+        ? 'c_task'
+        : v.category === 'noi_vu'
+        ? 'c_hygiene'
+        : 'c_bearing');
+    const targetCrit = activeCriteria.find((c) => c.id === targetCritId) || activeCriteria[0];
+
+    const currentCritScores = { ...(dialogScore.criteriaScores || {}) };
+    const oldScore = currentCritScores[targetCrit.id] ?? targetCrit.maxScore;
+    const newScore = Math.max(0, Math.min(targetCrit.maxScore, oldScore + diff));
+    currentCritScores[targetCrit.id] = newScore;
+
+    const nextViolations = dialogScore.violations.map((x) =>
+      x.id === violationId ? { ...x, points: newPoints } : x
+    );
+    const totalScore = activeCriteria.reduce(
+      (sum, c) => sum + (currentCritScores[c.id] ?? c.maxScore),
+      0
+    );
+
+    setDialogScore({
+      ...dialogScore,
+      criteriaScores: currentCritScores,
+      politicalScore: currentCritScores['c_political'] ?? dialogScore.politicalScore,
+      taskScore: currentCritScores['c_task'] ?? dialogScore.taskScore,
+      hygieneScore: currentCritScores['c_hygiene'] ?? dialogScore.hygieneScore,
+      bearingScore: currentCritScores['c_bearing'] ?? dialogScore.bearingScore,
+      violations: nextViolations,
+      totalScore,
     });
   };
 
@@ -360,6 +467,13 @@ export function DailyScoringSheet({
 
   return (
     <div className="w-full max-w-6xl py-2 space-y-6">
+      {/* ── Cascading Unit Selector ─────────────────────────────────────── */}
+      <CascadingUnitSelector
+        selectedUnitId={activeUnitId}
+        onSelectUnit={handleUnitSelect}
+        allowedRootId={allowedRootId}
+      />
+
       {/* ── Daily Lock & Approval Status Banner ──────────────────────── */}
       <div
         className={`border rounded-lg p-4 flex flex-col md:flex-row md:items-center justify-between gap-3 shadow-sm transition-all ${
@@ -380,29 +494,30 @@ export function DailyScoringSheet({
           </div>
           <div>
             <div className="flex items-center gap-2 flex-wrap">
-              <span
-                className={`text-xs font-bold uppercase tracking-wider px-2 py-0.5 rounded border ${
-                  isLocked
-                    ? 'bg-amber-100 text-amber-900 border-amber-300'
-                    : 'bg-emerald-100 text-emerald-900 border-emerald-300'
-                }`}
-              >
-                {isLocked ? 'ĐÃ CHỐT SỔ THI ĐUA (KHÓA)' : 'SỔ THI ĐUA ĐANG MỞ CHẤM ĐIỂM'}
-              </span>
-              <span className="text-xs font-semibold text-zinc-800">
+              {isLocked ? (
+                <span className="inline-flex items-center gap-1 rounded-[3px] border border-red-300 bg-red-100/70 px-2 py-0.5 text-[11px] font-bold uppercase tracking-wider text-[#991b1b]">
+                  <Lock className="w-3 h-3" />
+                  ĐÃ CHỐT SỔ THI ĐUA (KHÓA)
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1.5 rounded-[3px] border border-emerald-300 bg-emerald-100/90 px-2.5 py-1 text-xs font-bold text-emerald-950 shadow-2xs">
+                  <Unlock className="w-3.5 h-3.5 text-emerald-700" />
+                  SỔ THI ĐUA ĐANG MỞ CHẤM ĐIỂM
+                </span>
+              )}
+              <span className="inline-flex items-center rounded-[3px] border border-zinc-300 bg-white px-2.5 py-1 text-xs font-mono text-zinc-900 font-semibold shadow-2xs">
                 Ngày: {selectedDate}
               </span>
               {isLocked && lockStatus.lockedBy && (
-                <span className="text-xs text-zinc-600 bg-white/60 px-1.5 py-0.5 rounded">
-                  Phê duyệt bởi: <strong>{lockStatus.lockedBy}</strong>
+                <span className="inline-flex items-center rounded-[3px] border border-zinc-200 bg-zinc-100 px-2.5 py-1 text-xs text-zinc-800 font-medium">
+                  Phê duyệt: {lockStatus.lockedBy}
                 </span>
               )}
             </div>
-            <p className="text-xs text-zinc-600 mt-1">
+            <p className="text-xs text-zinc-700 mt-1 font-medium">
               {isLocked
-                ? lockStatus.lockNote ||
-                  'Sổ thi đua ngày đã được kiểm duyệt và chốt sau điểm danh tối 21:00. Không thể tùy tiện sửa điểm khi chưa có lệnh mở khóa của Chỉ huy.'
-                : 'Cán bộ chấm điểm hoàn tất nhập điểm và hồ sơ trước 21:00 hằng ngày (sau giờ điểm danh tối hệ thống sẽ tự động chốt).'}
+                ? lockStatus.lockNote || 'Sổ thi đua đã chốt sau điểm danh tối 21:00.'
+                : 'Nhập điểm và hoàn tất trước 21:00 hằng ngày.'}
             </p>
           </div>
         </div>
@@ -412,10 +527,10 @@ export function DailyScoringSheet({
           {lockStatus.unlockHistory && lockStatus.unlockHistory.length > 0 && (
             <button
               onClick={() => setShowUnlockHistoryModal(true)}
-              className="inline-flex items-center gap-1 text-[11px] font-medium text-zinc-600 bg-white hover:bg-zinc-100 border border-zinc-300 px-2 py-1.5 rounded shadow-xs"
+              className="inline-flex items-center gap-1.5 text-xs font-semibold text-zinc-700 bg-white hover:bg-zinc-100 border border-zinc-300 px-2.5 py-1.5 rounded-[3px] shadow-xs btn-tactile cursor-pointer"
               title="Xem nhật ký mở khóa sửa điểm"
             >
-              <History className="w-3.5 h-3.5" />
+              <History className="w-3.5 h-3.5 text-zinc-600" />
               <span>Nhật ký mở khóa ({lockStatus.unlockHistory.length})</span>
             </button>
           )}
@@ -425,7 +540,7 @@ export function DailyScoringSheet({
               {isLocked ? (
                 <button
                   onClick={() => setIsUnlockModalOpen(true)}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-amber-950 bg-amber-200 hover:bg-amber-300 border border-amber-400 rounded shadow-xs transition"
+                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold text-amber-950 bg-amber-200 hover:bg-amber-300 border border-amber-400 rounded-[3px] shadow-xs transition btn-tactile cursor-pointer"
                 >
                   <Unlock className="w-3.5 h-3.5" />
                   <span>Mở khóa sổ để sửa</span>
@@ -433,9 +548,9 @@ export function DailyScoringSheet({
               ) : (
                 <button
                   onClick={() => setIsLockModalOpen(true)}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-[#b91c1c] hover:bg-[#991b1b] rounded shadow-xs transition"
+                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold text-white bg-[#b91c1c] hover:bg-[#991b1b] rounded-[3px] shadow-xs transition btn-tactile cursor-pointer"
                 >
-                  <ShieldCheck className="w-3.5 h-3.5" />
+                  <ShieldCheck className="w-3.5 h-3.5 text-yellow-300" />
                   <span>Chốt sổ & Phê duyệt (21:00)</span>
                 </button>
               )}
@@ -444,126 +559,176 @@ export function DailyScoringSheet({
         </div>
       </div>
 
-      {/* ── Header & Controls ─────────────────────────────────────────── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-zinc-200 pb-4">
-        <div>
-          <h2 className="text-xl font-bold text-zinc-900 tracking-tight flex items-center gap-2">
-            <span>Bảng Điểm Thi Đua Quân Nhân</span>
-          </h2>
-          <p className="text-xs text-zinc-500 mt-1">
-            Đánh giá theo {activeCriteria.length} tiêu chí thi đua đang áp dụng. Bấm số điểm để sửa nhanh hoặc bấm <span className="font-semibold text-zinc-700">Chỉnh sửa</span> để thêm hồ sơ vi phạm/quyết định.
-          </p>
-        </div>
+      {/* ── Controls ─────────────────────────────────────────── */}
+      <div className="flex flex-wrap items-center justify-end gap-2.5 border-b border-zinc-200 pb-3">
+        {/* Quick link to criteria settings */}
+        {onNavigateToCriteria && (
+          <button
+            onClick={onNavigateToCriteria}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-zinc-700 bg-zinc-50 hover:bg-zinc-100 border border-zinc-300 rounded-[3px] shadow-xs btn-tactile cursor-pointer"
+            title="Cấu hình danh mục tiêu chí"
+          >
+            <SlidersHorizontal className="w-3.5 h-3.5 text-zinc-500" />
+            <span>Cấu hình tiêu chí</span>
+          </button>
+        )}
 
-        <div className="flex flex-wrap items-center gap-2.5">
-          {/* Quick link to criteria settings */}
-          {onNavigateToCriteria && (
-            <button
-              onClick={onNavigateToCriteria}
-              className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-zinc-700 bg-zinc-50 hover:bg-zinc-100 border border-zinc-300 rounded shadow-xs"
-              title="Quản lý và thiết lập danh mục tiêu chí thi đua"
-            >
-              <SlidersHorizontal className="w-3.5 h-3.5 text-zinc-500" />
-              <span>Cấu hình tiêu chí</span>
-            </button>
-          )}
+        {/* Quick soldier count badge */}
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-zinc-800 bg-zinc-50 border border-zinc-200 rounded-[3px]">
+          <span>Quân số:</span>
+          <strong className="text-zinc-900 font-bold">{platoonSoldiers.length}</strong>
+          <span className="text-zinc-500">đ/c</span>
+        </span>
 
-          <select
-            value={selectedPlatoonId}
+        <div className="flex items-center gap-1.5 text-xs text-zinc-700 bg-white border border-zinc-300 rounded-[3px] px-2.5 py-1 shadow-2xs">
+          <Calendar className="h-3.5 w-3.5 text-zinc-500" />
+          <input
+            type="date"
+            value={selectedDate}
             onChange={(e) => {
-              setSelectedPlatoonId(e.target.value);
+              onChangeDate(e.target.value);
+              setLocalScores({});
               setInlineEditState(null);
             }}
-            className="rounded border border-zinc-300 bg-white px-2.5 py-1.5 text-xs font-medium text-zinc-800 focus:border-[#b91c1c] focus:outline-none"
-          >
-            {platoons.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name}
-              </option>
-            ))}
-          </select>
-
-          <div className="flex items-center gap-1.5 text-xs text-zinc-600 bg-white border border-zinc-300 rounded px-2 py-1">
-            <Calendar className="h-3.5 w-3.5 text-zinc-500" />
-            <input
-              type="date"
-              value={selectedDate}
-              onChange={(e) => {
-                onChangeDate(e.target.value);
-                setLocalScores({});
-                setInlineEditState(null);
-              }}
-              className="text-xs text-zinc-800 focus:outline-none bg-transparent"
-            />
-          </div>
-
-          <button
-            onClick={handleSaveAll}
-            disabled={isLocked}
-            className={`inline-flex items-center gap-1.5 rounded px-3.5 py-1.5 text-xs font-semibold text-white transition-colors shadow-xs ${
-              isLocked
-                ? 'bg-zinc-400 cursor-not-allowed opacity-70'
-                : 'bg-[#b91c1c] hover:bg-red-800'
-            }`}
-          >
-            <Save className="h-3.5 w-3.5" />
-            Lưu bảng điểm
-          </button>
+            className="text-xs text-zinc-900 font-medium focus:outline-none bg-transparent cursor-pointer"
+          />
         </div>
+
+        <button
+          onClick={handleSaveAll}
+          disabled={isLocked}
+          className={`inline-flex items-center gap-1.5 rounded-[3px] px-4 py-1.5 text-xs font-bold text-white transition-colors shadow-xs btn-tactile cursor-pointer ${
+            isLocked
+              ? 'bg-zinc-400 cursor-not-allowed opacity-70'
+              : 'bg-[#b91c1c] hover:bg-red-800'
+          }`}
+        >
+          <Save className="h-3.5 w-3.5" />
+          Lưu bảng điểm
+        </button>
+      </div>
+
+      {/* Mobile scroll indicator hint */}
+      <div className="flex md:hidden items-center justify-between text-xs text-zinc-600 px-1 pb-1">
+        <span className="font-semibold">Bảng chấm điểm chi tiết</span>
+        <span className="flex items-center gap-1 text-zinc-500 font-medium">
+          ← Vuốt ngang xem các tiêu chí →
+        </span>
       </div>
 
       {/* ── Dynamic Criteria Table ────────────────────────────────────── */}
-      <div className="overflow-x-auto border border-zinc-200 rounded-lg shadow-xs">
-        <Table>
+      <div className="overflow-x-auto border border-zinc-200 bg-white shadow-xs rounded-[3px]">
+        <Table className="w-full text-left text-xs border-separate border-spacing-0">
           <TableHeader>
-            <TableRow className="bg-zinc-100/80 hover:bg-zinc-100/80 border-b border-zinc-200">
-              <TableHead className="w-10 text-center text-xs font-bold text-zinc-700 uppercase tracking-wide">
+            <TableRow className="bg-zinc-100 hover:bg-zinc-100">
+              {/* Frozen Left: STT + Quân nhân */}
+              <TableHead className="sticky left-0 top-0 z-30 bg-zinc-100 py-2.5 px-2 w-9 sm:w-10 min-w-[36px] sm:min-w-[40px] max-w-[40px] text-center text-xs font-semibold text-zinc-700 border-b border-zinc-200">
                 STT
               </TableHead>
-              <TableHead className="text-xs font-bold text-zinc-800 uppercase tracking-wide min-w-[160px]">
+              <TableHead className="sticky left-9 sm:left-10 top-0 z-30 bg-zinc-100 py-2.5 px-2.5 sm:px-3 min-w-[150px] max-w-[180px] sm:min-w-[180px] sm:max-w-[210px] text-xs font-semibold text-zinc-800 border-b border-r border-zinc-200 shadow-[2px_0_4px_-1px_rgba(0,0,0,0.06)]">
                 Quân nhân
               </TableHead>
 
-              {/* Dynamic criteria columns */}
-              {activeCriteria.map((crit, idx) => (
-                <TableHead
-                  key={crit.id}
-                  className="text-center text-xs font-bold text-zinc-800 uppercase tracking-wide whitespace-normal leading-tight min-w-[110px]"
-                >
-                  <div>
-                    {idx + 1}. {crit.name}
-                  </div>
-                  <span className="font-normal text-zinc-500 normal-case text-[11px]">
-                    ({crit.maxScore}đ)
-                  </span>
-                </TableHead>
-              ))}
+              {/* Dynamic criteria columns with category border accents */}
+              {activeCriteria.map((crit, idx) => {
+                const categoryColor =
+                  crit.category === 'KY_LUAT'
+                    ? 'border-t-2 border-t-red-600 bg-red-50/60 text-red-950'
+                    : crit.category === 'QUAN_SU'
+                    ? 'border-t-2 border-t-blue-600 bg-blue-50/60 text-blue-950'
+                    : crit.category === 'CHINH_TRI'
+                    ? 'border-t-2 border-t-amber-500 bg-amber-50/60 text-amber-950'
+                    : crit.category === 'HAU_CAN'
+                    ? 'border-t-2 border-t-emerald-600 bg-emerald-50/60 text-emerald-950'
+                    : 'border-t-2 border-t-zinc-400 bg-zinc-100 text-zinc-900';
 
-              <TableHead className="text-center text-xs font-bold text-[#b91c1c] uppercase tracking-wide w-24">
+                return (
+                  <TableHead
+                    key={crit.id}
+                    className={`text-center text-xs font-semibold whitespace-normal leading-tight min-w-[110px] border-b border-zinc-200 py-2.5 px-2 ${categoryColor}`}
+                  >
+                    <div>
+                      {idx + 1}. {crit.name}
+                    </div>
+                    <span className="font-bold text-xs text-[#b91c1c] block mt-0.5">
+                      ({crit.maxScore}đ)
+                    </span>
+                  </TableHead>
+                );
+              })}
+
+              {/* Right: Tổng điểm + Thao tác (Unpinned on mobile & tablet <lg) */}
+              <TableHead className="max-lg:static max-lg:shadow-none lg:sticky lg:right-[180px] top-0 z-30 bg-zinc-100 py-2.5 px-2 text-center text-xs font-bold text-[#b91c1c] w-24 min-w-[96px] max-w-[96px] border-b border-l border-zinc-200 lg:shadow-[-2px_0_4px_-1px_rgba(0,0,0,0.06)]">
                 Tổng điểm
               </TableHead>
-              <TableHead className="text-xs font-bold text-zinc-800 uppercase tracking-wide min-w-[190px]">
-                Vi phạm / Thao tác
+              <TableHead className="max-lg:static max-lg:shadow-none lg:sticky lg:right-0 top-0 z-30 bg-zinc-100 py-2.5 px-3 text-xs font-semibold text-zinc-800 min-w-[180px] max-w-[180px] border-b border-zinc-200">
+                Thao tác & Hồ sơ
               </TableHead>
             </TableRow>
           </TableHeader>
 
           <TableBody>
-            {platoonSoldiers.map((soldier, idx) => {
-              const sc = getSoldierScore(soldier);
+            {platoonSoldiers.length === 0 ? (
+              <TableRow>
+                <TableCell
+                  colSpan={activeCriteria.length + 4}
+                  className="py-10 text-center text-zinc-500 text-xs"
+                >
+                  <p className="font-semibold text-zinc-700 text-sm mb-1">
+                    Chưa có danh sách quân nhân cho đơn vị này
+                  </p>
+                  <p className="text-zinc-500 max-w-md mx-auto mb-3">
+                    Đồng chí có thể chuyển nhanh sang các phân đội dưới đây:
+                  </p>
+                  <div className="flex items-center justify-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => handleUnitSelect('C1', 'COMPANY')}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-[#b91c1c] hover:bg-[#991b1b] rounded-[3px] transition-colors shadow-2xs"
+                    >
+                      <span>Đại đội 1 (dBB4)</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleUnitSelect('C18', 'COMPANY')}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-zinc-800 bg-zinc-100 hover:bg-zinc-200 border border-zinc-300 rounded-[3px] transition-colors"
+                    >
+                      <span>Đại đội 18 Thông tin (cTT)</span>
+                    </button>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ) : (
+              platoonSoldiers.map((soldier, idx) => {
+                const sc = getSoldierScore(soldier);
 
-              return (
-                <TableRow key={soldier.id} className="hover:bg-zinc-50/70 border-b border-zinc-200">
-                  <TableCell className="text-center text-xs text-zinc-500 font-mono">
+                return (
+                <TableRow key={soldier.id} className="group table-row-hover">
+                  {/* Frozen Left: STT */}
+                  <TableCell className="sticky left-0 z-20 bg-white group-hover:bg-red-50/20 text-center text-xs text-zinc-500 font-mono py-2.5 px-2 w-9 sm:w-10 min-w-[36px] sm:min-w-[40px] max-w-[40px] border-b border-zinc-200">
                     {idx + 1}
                   </TableCell>
 
-                  <TableCell>
-                    <div className="font-bold text-xs uppercase text-zinc-900">
-                      {soldier.name}
-                    </div>
-                    <div className="text-[11px] text-zinc-500">
-                      {soldier.rank} — {soldier.squadName}
+                  {/* Frozen Left: Quân nhân */}
+                  <TableCell className="sticky left-9 sm:left-10 z-20 bg-white group-hover:bg-red-50/20 py-2.5 px-2.5 sm:px-3 min-w-[150px] max-w-[180px] sm:min-w-[180px] sm:max-w-[210px] border-b border-r border-zinc-200 shadow-[2px_0_4px_-1px_rgba(0,0,0,0.06)]">
+                    <div className="flex items-center gap-2">
+                      <div className="relative flex h-7 w-7 shrink-0 items-center justify-center rounded-[2px] overflow-hidden border border-zinc-200 bg-white">
+                        <Image
+                          src={soldier.avatarUrl || '/default-avatar.png'}
+                          alt={soldier.name}
+                          width={28}
+                          height={28}
+                          className="h-full w-full object-cover"
+                        />
+                      </div>
+                      <div className="truncate">
+                        <div className="font-semibold text-xs text-zinc-900 uppercase truncate">
+                          {soldier.name}
+                        </div>
+                        <div className="text-xs text-zinc-600 font-medium">
+                          {soldier.rank} — {soldier.squadName}
+                        </div>
+                      </div>
                     </div>
                   </TableCell>
 
@@ -576,7 +741,7 @@ export function DailyScoringSheet({
 
                     if (isEditing) {
                       return (
-                        <TableCell key={crit.id} className="text-center p-1.5">
+                        <TableCell key={crit.id} className="text-center p-1.5 border-b border-zinc-200">
                           <div className="flex items-center justify-center gap-1">
                             <input
                               autoFocus
@@ -615,7 +780,7 @@ export function DailyScoringSheet({
                     }
 
                     return (
-                      <TableCell key={crit.id} className="text-center p-2 group">
+                      <TableCell key={crit.id} className="text-center p-2 group/cell border-b border-zinc-200">
                         <button
                           onClick={() => startInlineEdit(soldier.id, crit.id, scoreVal)}
                           disabled={isLocked}
@@ -624,7 +789,7 @@ export function DailyScoringSheet({
                               ? 'Sổ đã khóa sau 21:00'
                               : `Bấm để sửa điểm ${crit.name} (Tối đa ${crit.maxScore})`
                           }
-                          className={`inline-flex items-center gap-1 font-mono font-semibold transition-colors ${
+                          className={`inline-flex items-center gap-1 font-mono font-bold text-xs transition-colors cursor-pointer ${
                             isLocked
                               ? 'text-zinc-700 cursor-not-allowed'
                               : 'text-zinc-900 hover:text-[#b91c1c]'
@@ -632,27 +797,29 @@ export function DailyScoringSheet({
                         >
                           <span>{scoreVal}</span>
                           {!isLocked && (
-                            <Pencil className="h-3 w-3 opacity-0 group-hover:opacity-60 transition-opacity" />
+                            <Pencil className="h-3 w-3 opacity-0 group-hover/cell:opacity-60 transition-opacity" />
                           )}
                         </button>
                       </TableCell>
                     );
                   })}
 
-                  <TableCell className="text-center font-mono font-bold text-sm text-[#b91c1c]">
+                  {/* Right: Tổng điểm (Unpinned on mobile & tablet <lg) */}
+                  <TableCell className="max-lg:static max-lg:shadow-none lg:sticky lg:right-[180px] z-20 bg-white group-hover:bg-red-50/20 text-center font-mono font-bold text-sm text-[#b91c1c] w-24 min-w-[96px] max-w-[96px] border-b border-l border-zinc-200 lg:shadow-[-2px_0_4px_-1px_rgba(0,0,0,0.06)]">
                     {sc.totalScore}
                   </TableCell>
 
-                  <TableCell>
+                  {/* Right: Thao tác & Hồ sơ (Unpinned on mobile & tablet <lg) */}
+                  <TableCell className="max-lg:static max-lg:shadow-none lg:sticky lg:right-0 z-20 bg-white group-hover:bg-red-50/20 min-w-[180px] max-w-[180px] border-b border-zinc-200 py-2 px-3">
                     <div className="flex flex-wrap items-center gap-1.5">
                       <button
                         type="button"
                         onClick={() => handleOpenEditModal(soldier)}
                         disabled={isLocked && !canLock}
-                        className={`inline-flex items-center gap-1 rounded border px-2.5 py-1 text-xs font-semibold transition-colors ${
+                        className={`inline-flex items-center gap-1 rounded-[3px] border px-2.5 py-1 text-xs font-semibold transition-colors btn-tactile cursor-pointer ${
                           isLocked && !canLock
                             ? 'border-zinc-200 bg-zinc-100 text-zinc-400 cursor-not-allowed'
-                            : 'border-[#b91c1c] bg-red-50/60 text-[#b91c1c] hover:bg-[#b91c1c] hover:text-white'
+                            : 'border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-50'
                         }`}
                         title={
                           isLocked && !canLock
@@ -660,26 +827,38 @@ export function DailyScoringSheet({
                             : 'Chỉnh sửa chi tiết điểm và hồ sơ đính kèm'
                         }
                       >
-                        <Pencil className="h-3 w-3" />
-                        <span>Chỉnh sửa</span>
+                        <Pencil className="h-3 w-3 text-zinc-500" />
+                        <span>Sửa</span>
                       </button>
 
                       <button
                         type="button"
                         onClick={() => onOpenCommendationModal(soldier)}
-                        className="inline-flex items-center gap-1 rounded border border-zinc-200 px-2 py-1 text-[11px] font-medium text-zinc-600 hover:border-zinc-400 transition-colors bg-white"
+                        className="inline-flex items-center gap-1 rounded-[3px] border border-zinc-300 px-2.5 py-1 text-xs font-semibold text-zinc-700 hover:bg-zinc-50 transition-colors bg-white btn-tactile cursor-pointer"
                       >
-                        Biểu dương / nhắc nhở
+                        Ghi nhận
                       </button>
                     </div>
 
                     {sc.decisionDocument && (
-                      <div className="mt-1.5 flex items-center gap-1 text-[10px] text-amber-900 bg-amber-50 border border-amber-200 rounded px-1.5 py-0.5 max-w-fit">
-                        <FileText className="h-3 w-3 text-amber-700" />
-                        <span className="font-semibold">{sc.decisionDocument.documentNumber}</span>
-                        {sc.decisionDocument.fileName && (
-                          <span className="text-zinc-500 font-mono italic">
-                            ({sc.decisionDocument.fileName})
+                      <div className="mt-1.5">
+                        {sc.decisionDocument.fileName ? (
+                          <a
+                            href="#view-decision"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              notify.info('Văn bản đính kèm', sc.decisionDocument?.fileName);
+                            }}
+                            className="inline-flex items-center gap-1.5 rounded-[3px] border border-amber-300 bg-amber-50/70 px-2 py-0.5 font-mono text-xs text-amber-950 hover:bg-amber-100 transition-colors font-medium cursor-pointer"
+                          >
+                            <FileText className="w-3.5 h-3.5 text-amber-700 shrink-0" />
+                            <span>{sc.decisionDocument.documentNumber}</span>
+                            <ArrowUpRightIcon className="w-3 h-3 text-amber-600 ml-0.5 shrink-0" />
+                          </a>
+                        ) : (
+                          <span className="inline-flex items-center gap-1.5 rounded-[3px] border border-amber-200 bg-amber-50/50 px-2 py-0.5 font-mono text-xs text-amber-900 font-medium">
+                            <FileText className="w-3.5 h-3.5 text-amber-700 shrink-0" />
+                            <span>{sc.decisionDocument.documentNumber}</span>
                           </span>
                         )}
                       </div>
@@ -690,16 +869,16 @@ export function DailyScoringSheet({
                         {sc.violations.map((v) => (
                           <span
                             key={v.id}
-                            className={`inline-flex items-center gap-0.5 rounded border px-1.5 py-0.5 text-[10px] ${
+                            className={`inline-flex items-center gap-1 rounded-[3px] border px-2 py-0.5 text-xs font-semibold leading-tight ${
                               v.points < 0
-                                ? 'border-red-200 bg-red-50 text-red-800'
+                                ? 'border-red-200 bg-red-50 text-[#991b1b]'
                                 : 'border-emerald-200 bg-emerald-50 text-emerald-800'
                             }`}
                           >
                             {v.points < 0 ? (
-                              <Minus className="h-2.5 w-2.5" />
+                              <Minus className="h-2.5 w-2.5 shrink-0" />
                             ) : (
-                              <Plus className="h-2.5 w-2.5" />
+                              <Plus className="h-2.5 w-2.5 shrink-0" />
                             )}
                             {v.content.replace(/ \([+-]\d+đ\)/, '')}
                           </span>
@@ -709,25 +888,26 @@ export function DailyScoringSheet({
                   </TableCell>
                 </TableRow>
               );
-            })}
+            })
+          )}
           </TableBody>
 
           <TableFooter>
-            <TableRow className="bg-zinc-100 font-bold border-t-2 border-zinc-300">
-              <TableCell colSpan={2} className="text-xs uppercase tracking-wide text-zinc-800">
+            <TableRow className="bg-zinc-100 font-bold">
+              <TableCell colSpan={2} className="sticky left-0 z-20 bg-zinc-100 text-xs uppercase tracking-wide text-zinc-800 border-b border-t-2 border-r border-zinc-200 shadow-[2px_0_4px_-1px_rgba(0,0,0,0.06)] py-2.5 px-3">
                 Trung bình cả trung đội
               </TableCell>
 
               {activeCriteria.map((crit) => (
-                <TableCell key={crit.id} className="text-center font-mono text-xs text-zinc-900">
+                <TableCell key={crit.id} className="text-center font-mono text-xs text-zinc-900 border-b border-t-2 border-zinc-200">
                   {criteriaTotals[crit.id] || 0}
                 </TableCell>
               ))}
 
-              <TableCell className="text-center font-mono font-bold text-sm text-[#b91c1c]">
+              <TableCell className="max-lg:static max-lg:shadow-none lg:sticky lg:right-[180px] z-20 bg-zinc-100 text-center font-mono font-bold text-sm text-[#b91c1c] border-b border-t-2 border-l border-zinc-200 lg:shadow-[-2px_0_4px_-1px_rgba(0,0,0,0.06)]">
                 {totalAverage}
               </TableCell>
-              <TableCell />
+              <TableCell className="max-lg:static max-lg:shadow-none lg:sticky lg:right-0 z-20 bg-zinc-100 border-b border-t-2 border-zinc-200" />
             </TableRow>
           </TableFooter>
         </Table>
@@ -745,8 +925,11 @@ export function DailyScoringSheet({
 
       {/* ── MODAL: CHỐT SỔ & PHÊ DUYỆT ───────────────────────────────── */}
       {isLockModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4 animate-in fade-in">
-          <div className="bg-white rounded-lg border border-zinc-200 shadow-xl w-full max-w-md p-5 space-y-4">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-xs p-0 sm:p-4 animate-in fade-in">
+          <div className="bg-white rounded-t-xl sm:rounded-[3px] border border-zinc-300 shadow-lg w-full max-w-md p-4 sm:p-5 space-y-4 max-h-[92dvh] overflow-y-auto animate-in slide-in-from-bottom sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-200">
+            {/* Mobile pull handle */}
+            <div className="mx-auto -mt-1 mb-1 h-1.5 w-12 rounded-full bg-zinc-300 sm:hidden" />
+
             <div className="flex items-center gap-2 text-zinc-900 border-b border-zinc-200 pb-3">
               <ShieldCheck className="w-5 h-5 text-[#b91c1c]" />
               <h3 className="font-bold text-sm uppercase">Chốt Sổ & Phê Duyệt Điểm Ngày</h3>
@@ -788,8 +971,11 @@ export function DailyScoringSheet({
 
       {/* ── MODAL: MỞ KHÓA SỔ ĐỂ HIỆU CHỈNH ───────────────────────────── */}
       {isUnlockModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4 animate-in fade-in">
-          <div className="bg-white rounded-lg border border-zinc-200 shadow-xl w-full max-w-md p-5 space-y-4">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-xs p-0 sm:p-4 animate-in fade-in">
+          <div className="bg-white rounded-t-xl sm:rounded-[3px] border border-zinc-300 shadow-lg w-full max-w-md p-4 sm:p-5 space-y-4 max-h-[92dvh] overflow-y-auto animate-in slide-in-from-bottom sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-200">
+            {/* Mobile pull handle */}
+            <div className="mx-auto -mt-1 mb-1 h-1.5 w-12 rounded-full bg-zinc-300 sm:hidden" />
+
             <div className="flex items-center gap-2 text-zinc-900 border-b border-zinc-200 pb-3">
               <AlertTriangle className="w-5 h-5 text-amber-600" />
               <h3 className="font-bold text-sm uppercase">Mở Khóa Sổ Thi Đua</h3>
@@ -832,8 +1018,11 @@ export function DailyScoringSheet({
 
       {/* ── MODAL: NHẬT KÝ MỞ KHÓA (AUDIT TRAIL) ───────────────────────── */}
       {showUnlockHistoryModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4 animate-in fade-in">
-          <div className="bg-white rounded-lg border border-zinc-200 shadow-xl w-full max-w-lg p-5 space-y-4">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-xs p-0 sm:p-4 animate-in fade-in">
+          <div className="bg-white rounded-t-xl sm:rounded-[3px] border border-zinc-300 shadow-lg w-full max-w-lg p-4 sm:p-5 space-y-4 max-h-[92dvh] overflow-y-auto animate-in slide-in-from-bottom sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-200">
+            {/* Mobile pull handle */}
+            <div className="mx-auto -mt-1 mb-1 h-1.5 w-12 rounded-full bg-zinc-300 sm:hidden" />
+
             <div className="flex items-center justify-between border-b border-zinc-200 pb-3">
               <div className="flex items-center gap-2">
                 <History className="w-5 h-5 text-zinc-700" />
@@ -875,8 +1064,10 @@ export function DailyScoringSheet({
 
       {/* ── FULL EDIT MODAL FOR SOLDIER SCORE & DECISION ATTACHMENT ── */}
       {editingSoldier && dialogScore && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 animate-in fade-in">
-          <div className="w-full max-w-2xl rounded-lg border border-zinc-200 bg-white p-6 shadow-2xl max-h-[90vh] overflow-y-auto space-y-5">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 p-0 sm:p-4 animate-in fade-in backdrop-blur-xs">
+          <div className="w-full max-w-2xl rounded-t-xl sm:rounded-[3px] border border-zinc-300 bg-white p-4 sm:p-6 shadow-lg max-h-[92dvh] overflow-y-auto space-y-4 sm:space-y-5 animate-in slide-in-from-bottom sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-200">
+            {/* Mobile pull handle */}
+            <div className="mx-auto -mt-1 mb-2 h-1.5 w-12 rounded-full bg-zinc-300 sm:hidden" />
             {/* Modal Header */}
             <div className="flex items-start justify-between border-b border-zinc-200 pb-3">
               <div>
@@ -975,76 +1166,107 @@ export function DailyScoringSheet({
               </div>
 
               {/* Custom violation input */}
-              <div className="flex items-center gap-2 pt-1">
-                <input
-                  type="text"
-                  placeholder="Ghi nhận lỗi hoặc thành tích khác..."
-                  value={customViolationText}
-                  onChange={(e) => setCustomViolationText(e.target.value)}
-                  className="flex-1 rounded border border-zinc-300 bg-white px-2.5 py-1.5 text-xs focus:border-[#b91c1c] focus:outline-none"
-                />
-                <select
-                  value={violationTargetCrit}
-                  onChange={(e) => setViolationTargetCrit(e.target.value)}
-                  className="rounded border border-zinc-300 bg-white px-2 py-1.5 text-xs"
-                >
-                  {activeCriteria.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name}
-                    </option>
+              <div className="space-y-2 pt-1">
+                <div className="flex flex-wrap sm:flex-nowrap items-center gap-2">
+                  <input
+                    type="text"
+                    placeholder="Ghi nhận lỗi hoặc thành tích (tùy ý nhập)..."
+                    value={customViolationText}
+                    onChange={(e) => setCustomViolationText(e.target.value)}
+                    className="flex-1 min-w-[180px] rounded border border-zinc-300 bg-white px-2.5 py-1.5 text-xs focus:border-[#b91c1c] focus:outline-none"
+                  />
+                  <select
+                    value={violationTargetCrit}
+                    onChange={(e) => setViolationTargetCrit(e.target.value)}
+                    className="rounded border border-zinc-300 bg-white px-2 py-1.5 text-xs text-zinc-700"
+                  >
+                    {activeCriteria.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name}
+                      </option>
+                    ))}
+                  </select>
+                  <div className="flex items-center gap-1">
+                    <input
+                      type="number"
+                      value={customViolationPoints}
+                      onChange={(e) => setCustomViolationPoints(parseInt(e.target.value) || 0)}
+                      className="w-16 rounded border border-zinc-300 bg-white px-1.5 py-1.5 text-center text-xs font-mono font-bold focus:border-[#b91c1c] focus:outline-none"
+                      title="Nhập số điểm cộng (+) hoặc trừ (-) bất kỳ"
+                    />
+                    <span className="text-xs text-zinc-500 font-semibold">đ</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (customViolationText.trim()) {
+                        handleAddViolation(customViolationText, customViolationPoints, violationTargetCrit);
+                        setCustomViolationText('');
+                      }
+                    }}
+                    className="rounded bg-zinc-900 text-white px-3 py-1.5 text-xs font-semibold hover:bg-zinc-800 shrink-0 shadow-xs"
+                  >
+                    Thêm
+                  </button>
+                </div>
+
+                {/* Quick point adjustment chips */}
+                <div className="flex items-center gap-1 text-[11px] text-zinc-500 overflow-x-auto pb-0.5">
+                  <span className="text-[10px] text-zinc-400 shrink-0 font-medium">Mức điểm nhanh:</span>
+                  {[-20, -15, -10, -5, -2, -1, 1, 2, 5, 10, 15, 20].map((pt) => (
+                    <button
+                      key={pt}
+                      type="button"
+                      onClick={() => setCustomViolationPoints(pt)}
+                      className={`px-1.5 py-0.5 rounded text-[10px] font-mono font-bold border transition-colors ${
+                        customViolationPoints === pt
+                          ? pt > 0
+                            ? 'bg-emerald-600 text-white border-emerald-600'
+                            : 'bg-red-600 text-white border-red-600'
+                          : pt > 0
+                          ? 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
+                          : 'border-red-200 bg-red-50 text-red-700 hover:bg-red-100'
+                      }`}
+                    >
+                      {pt > 0 ? `+${pt}` : pt}
+                    </button>
                   ))}
-                </select>
-                <select
-                  value={customViolationPoints}
-                  onChange={(e) => setCustomViolationPoints(parseInt(e.target.value))}
-                  className="rounded border border-zinc-300 bg-white px-2 py-1.5 text-xs font-mono font-bold"
-                >
-                  <option value={-5}>-5 đ</option>
-                  <option value={-10}>-10 đ</option>
-                  <option value={-15}>-15 đ</option>
-                  <option value={5}>+5 đ</option>
-                  <option value={10}>+10 đ</option>
-                </select>
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (customViolationText.trim()) {
-                      handleAddViolation(customViolationText, customViolationPoints, violationTargetCrit);
-                      setCustomViolationText('');
-                    }
-                  }}
-                  className="rounded bg-zinc-800 text-white px-3 py-1.5 text-xs font-semibold hover:bg-zinc-700"
-                >
-                  Thêm
-                </button>
+                </div>
               </div>
 
               {/* Active violations list */}
               {dialogScore.violations.length > 0 && (
-                <div className="mt-2 space-y-1 rounded border border-zinc-200 bg-zinc-50/50 p-2">
-                  <span className="text-[10px] font-semibold text-zinc-500 uppercase tracking-wide">
-                    Đã ghi nhận trong ngày:
-                  </span>
-                  <div className="space-y-1">
+                <div className="mt-2 space-y-1.5 rounded border border-zinc-200 bg-zinc-50/50 p-2.5">
+                  <div className="flex items-center justify-between text-[10px] font-semibold text-zinc-500 uppercase tracking-wide">
+                    <span>Đã ghi nhận trong ngày ({dialogScore.violations.length}):</span>
+                    <span className="text-zinc-400 font-normal lowercase">(nhấp vào số điểm để sửa đổi tự do)</span>
+                  </div>
+                  <div className="space-y-1.5">
                     {dialogScore.violations.map((v) => (
                       <div
                         key={v.id}
-                        className="flex items-center justify-between text-xs bg-white border border-zinc-200 px-2 py-1 rounded"
+                        className="flex items-center justify-between gap-2 text-xs bg-white border border-zinc-200 px-2.5 py-1.5 rounded shadow-xs"
                       >
-                        <span className="text-zinc-800">{v.content}</span>
-                        <div className="flex items-center gap-2">
-                          <span
-                            className={`font-mono font-bold text-xs ${
-                              v.points > 0 ? 'text-emerald-600' : 'text-red-600'
+                        <span className="text-zinc-800 flex-1 truncate">{v.content}</span>
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <label className="text-[10px] text-zinc-400">Điểm:</label>
+                          <input
+                            type="number"
+                            value={v.points}
+                            onChange={(e) => handleEditViolationPoints(v.id, parseInt(e.target.value) || 0)}
+                            className={`w-14 rounded border px-1 py-0.5 text-center font-mono text-xs font-bold focus:outline-none ${
+                              v.points > 0
+                                ? 'border-emerald-300 bg-emerald-50 text-emerald-700'
+                                : 'border-red-300 bg-red-50 text-red-700'
                             }`}
-                          >
-                            {v.points > 0 ? `+${v.points}` : v.points}đ
-                          </span>
+                            title="Tùy chỉnh số điểm của ghi nhận này"
+                          />
+                          <span className="text-[10px] text-zinc-500 font-semibold">đ</span>
                           <button
                             type="button"
                             onClick={() => handleRemoveViolation(v.id)}
-                            className="text-zinc-400 hover:text-red-600 p-0.5"
-                            title="Xóa"
+                            className="text-zinc-400 hover:text-red-600 p-1 rounded hover:bg-zinc-100 transition-colors ml-1"
+                            title="Xóa ghi nhận"
                           >
                             <Trash2 className="h-3.5 w-3.5" />
                           </button>

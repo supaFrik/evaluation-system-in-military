@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { Soldier, Platoon, CommendationItem, DisciplineDocument } from '@/lib/types';
 import { X, FileText, ChevronDown, ChevronRight } from 'lucide-react';
+import { ALL_UNITS } from '@/lib/mock-data';
 
 interface AddCommendationDialogProps {
   isOpen: boolean;
@@ -62,9 +63,14 @@ export function AddCommendationDialog({
       targetName = s ? `${s.rank} ${s.name} (${s.platoonName})` : targetId;
       platoonId = s?.platoonId;
     } else {
-      const p = platoons.find((x) => x.id === targetId);
-      targetName = p ? p.name : targetId;
-      platoonId = targetId;
+      const unit = ALL_UNITS.find((x) => x.id === targetId);
+      const plat = platoons.find((x) => x.id === targetId);
+      targetName = unit ? unit.name : plat ? plat.name : targetId;
+      platoonId = unit
+        ? unit.tier === 'PLATOON'
+          ? unit.id
+          : unit.parentId || targetId
+        : targetId;
     }
 
     const disciplineDocument: DisciplineDocument | undefined =
@@ -91,8 +97,10 @@ export function AddCommendationDialog({
   const inputCls = 'w-full rounded border border-zinc-300 bg-white px-3 py-1.5 text-xs text-zinc-900 focus:border-[#b91c1c] focus:outline-none';
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="w-full max-w-xl rounded border border-zinc-200 bg-white p-6 shadow-xl max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 p-0 sm:p-4 backdrop-blur-xs animate-in fade-in">
+      <div className="w-full max-w-xl rounded-t-xl sm:rounded-[3px] border border-zinc-300 bg-white p-4 sm:p-6 shadow-lg max-h-[92dvh] overflow-y-auto animate-in slide-in-from-bottom sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-200">
+        {/* Mobile pull handle */}
+        <div className="mx-auto -mt-1 mb-2 h-1.5 w-12 rounded-full bg-zinc-300 sm:hidden" />
         {/* Header */}
         <div className="flex items-center justify-between border-b border-zinc-200 pb-3 mb-4">
           <h3 className="text-base font-semibold text-zinc-900">
@@ -138,7 +146,7 @@ export function AddCommendationDialog({
 
           {/* 3. Target */}
           <div>
-            <label className={labelCls}>Chọn {scope === 'INDIVIDUAL' ? 'quân nhân' : 'trung đội'}:</label>
+            <label className={labelCls}>Chọn {scope === 'INDIVIDUAL' ? 'quân nhân' : 'tập thể đơn vị'}:</label>
             <select value={targetId} onChange={(e) => setTargetId(e.target.value)} className={inputCls}>
               {scope === 'INDIVIDUAL'
                 ? soldiers.map((s) => (
@@ -146,11 +154,14 @@ export function AddCommendationDialog({
                       {s.name} — {s.rank} ({s.squadName}, {s.platoonName})
                     </option>
                   ))
-                : platoons.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.name}
-                    </option>
-                  ))}
+                : ALL_UNITS.filter((u) => u.tier === 'PLATOON' || u.tier === 'COMPANY' || u.tier === 'SQUAD').map((u) => {
+                    const typeLabel = u.tier === 'COMPANY' ? 'Đại đội' : u.tier === 'PLATOON' ? 'Trung đội' : 'Tiểu đội';
+                    return (
+                      <option key={u.id} value={u.id}>
+                        {u.name} ({typeLabel} • {u.code})
+                      </option>
+                    );
+                  })}
             </select>
           </div>
 
