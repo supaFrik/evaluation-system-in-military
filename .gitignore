@@ -58,3 +58,4 @@ next-env.d.ts
 
 # Maven
 .mvn/wrapper/maven-wrapper.jar
+/.agents/
