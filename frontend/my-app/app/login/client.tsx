@@ -1,32 +1,80 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useSyncExternalStore } from 'react';
 import Image from 'next/image';
 import LoginSignupComponent from '@/components/ui/login-signup';
-import { MOCK_ACCOUNTS } from '@/lib/mock-data';
+import { authService, AUTH_TOKEN_KEY } from '@/lib/api';
 import { notify } from '@/lib/notify';
 
-export default function LoginClientPage() {
-  const handleSuccess = (userData: { email: string; name?: string; role?: string }) => {
-    // Find the matching mock account by email prefix or username or role
-    const account =
-      MOCK_ACCOUNTS.find(
-        (a) =>
-          a.username.toLowerCase() === userData.email.split('@')[0].toLowerCase() ||
-          userData.email.toLowerCase().includes(a.username.toLowerCase()) ||
-          (userData.role && a.role === userData.role)
-      ) || MOCK_ACCOUNTS[0];
+function checkIsAuthenticated(): boolean {
+  if (typeof window === 'undefined') return false;
+  try {
+    const token = localStorage.getItem(AUTH_TOKEN_KEY);
+    const userStr = localStorage.getItem('thi_dua_user');
+    if (token && userStr) {
+      const parsedUser = JSON.parse(userStr);
+      if (parsedUser && (parsedUser.id || parsedUser.username || parsedUser.email)) {
+        return true;
+      }
+    }
+  } catch (e) {
+    console.warn('Invalid user session in localStorage, clearing...', e);
+    localStorage.removeItem(AUTH_TOKEN_KEY);
+    localStorage.removeItem('thi_dua_user');
+  }
+  return false;
+}
 
-    localStorage.setItem('thi_dua_user', JSON.stringify(account));
-    notify.success(`Đăng nhập thành công!`, `Xin chào ${account.name} — ${account.roleTitle}`);
-    setTimeout(() => {
-      window.location.href = '/';
-    }, 400);
+export default function LoginClientPage() {
+  const isClient = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false
+  );
+
+  const isAuthenticated = isClient ? checkIsAuthenticated() : false;
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      const search = typeof window !== 'undefined' ? window.location.search : '';
+      window.location.replace('/' + search);
+    }
+  }, [isAuthenticated]);
+
+  const handleSuccess = async (userData: { email: string; name?: string; role?: string; password?: string }) => {
+    try {
+      const loginIdentifier = userData.email;
+      const password = userData.password || 'Password@123';
+      const authData = await authService.login(loginIdentifier, password);
+
+      notify.success(
+        'Đăng nhập thành công!',
+        `Xin chào ${authData.user.name} — ${authData.user.roleTitle || authData.user.role}`
+      );
+      setTimeout(() => {
+        const search = typeof window !== 'undefined' ? window.location.search : '';
+        window.location.replace('/' + search);
+      }, 400);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Tài khoản hoặc mật khẩu không chính xác';
+      notify.error('Đăng nhập thất bại', message);
+    }
   };
+
+  if (!isClient || isAuthenticated) {
+    return (
+      <div className="relative min-h-[100dvh] w-full flex items-center justify-center p-4 bg-white">
+        <div className="text-center space-y-3 z-10">
+          <div className="animate-spin h-8 w-8 border-3 border-red-700 border-t-transparent rounded-full mx-auto" />
+          <p className="text-xs font-semibold text-zinc-600">Đang kiểm tra phiên đăng nhập...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="relative min-h-[100dvh] w-full flex items-center justify-center p-4 sm:p-6 overflow-hidden bg-white">
-      {/* 1. Ảnh nền nằm sau: Họa tiết Trống đồng Đông Sơn (bg-trong.png) */}
+      {/* 1. Ảnh nền nằm sau: Họa tiết Trống đồng Đông Sơn */}
       <div
         className="absolute inset-0 z-0 bg-cover bg-center sm:bg-top bg-no-repeat opacity-90"
         style={{
@@ -34,7 +82,7 @@ export default function LoginClientPage() {
         }}
       />
 
-      {/* 2. Ảnh nằm trước: Dải cờ đỏ quân đội (back_gr_1.png) căn đáy màn hình với kích thước chuẩn */}
+      {/* 2. Ảnh nằm trước: Dải cờ đỏ quân đội căn đáy màn hình */}
       <div className="absolute bottom-0 left-0 right-0 z-[1] pointer-events-none w-full max-w-full overflow-hidden">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
@@ -46,7 +94,7 @@ export default function LoginClientPage() {
 
       {/* 3. Thẻ Đăng nhập / Đăng ký & Tiêu đề đơn vị */}
       <div className="relative z-10 w-full max-w-sm space-y-3.5 my-auto">
-        {/* Header với Cờ Đảng & Tổ Quốc và Tiêu đề Đơn vị theo đúng ảnh mẫu */}
+        {/* Header với Cờ Đảng & Tổ Quốc và Tiêu đề Đơn vị */}
         <div className="flex flex-col items-center text-center space-y-2 mb-2">
           <div className="flex h-12 w-20 items-center justify-center">
             <Image
@@ -64,46 +112,6 @@ export default function LoginClientPage() {
         </div>
 
         <LoginSignupComponent onSuccess={handleSuccess} defaultMode="signin" />
-
-        {/* Quick test accounts hints */}
-        <div className="border border-zinc-200/90 rounded-[4px] bg-white p-3.5 space-y-2.5 shadow-md">
-          <div className="flex items-center justify-between border-b border-zinc-100 pb-1.5">
-            <p className="text-[11px] font-bold uppercase tracking-wider text-zinc-800">
-              Đăng nhập nhanh theo phân quyền
-            </p>
-            <span className="text-[10px] text-zinc-400 font-mono">Bấm để vào ngay</span>
-          </div>
-          <div className="grid grid-cols-1 gap-1.5">
-            {[
-              { label: 'Trung đoàn trưởng (e335)', user: 'trungdoan', name: 'Thượng tá Nguyễn Quang Huy', tier: 'Cấp Trung đoàn' },
-              { label: 'Tiểu đoàn trưởng (dBB4)', user: 'tieudoan', name: 'Thiếu tá Trần Đại Nghĩa', tier: 'Cấp Tiểu đoàn' },
-              { label: 'Đại đội trưởng (C1)', user: 'chihuy', name: 'Đại úy Nguyễn Thế Anh', tier: 'Cấp Đại đội' },
-              { label: 'Trực ban chấm điểm', user: 'chamdiem', name: 'Trung sĩ Trần Văn Bình', tier: 'Cán bộ chấm' },
-              { label: 'Chiến sĩ (Quân nhân)', user: 'quannhan', name: 'Binh nhất Trịnh Quốc Việt', tier: 'Chiến sĩ' },
-            ].map((a) => (
-              <button
-                key={a.user}
-                type="button"
-                onClick={() => handleSuccess({ email: a.user })}
-                className="w-full min-h-[44px] flex items-center justify-between text-left text-xs text-zinc-700 bg-zinc-50 hover:bg-red-50 hover:border-red-300 border border-zinc-200 px-3 py-2 rounded-[3px] cursor-pointer transition-colors group"
-              >
-                <div>
-                  <div className="font-semibold text-zinc-900 group-hover:text-[#b91c1c] text-xs">
-                    {a.name}
-                  </div>
-                  <div className="text-[10.5px] text-zinc-500">
-                    {a.label}
-                  </div>
-                </div>
-                <div className="text-right shrink-0">
-                  <span className="inline-block font-mono text-[10.5px] font-bold bg-white border border-zinc-200 group-hover:border-red-300 px-1.5 py-0.5 rounded-[2px] text-[#b91c1c]">
-                    {a.user}
-                  </span>
-                </div>
-              </button>
-            ))}
-          </div>
-        </div>
       </div>
     </div>
   );

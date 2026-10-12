@@ -37,7 +37,7 @@ public class EmulationCriterion {
 
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "criterion_deduction_rules", joinColumns = @JoinColumn(name = "criterion_id"))
-    @Column(name = "deduction_rule", columnDefinition = "TEXT")
+    @Column(name = "rule", columnDefinition = "TEXT")
     @Builder.Default
     private List<String> deductionRules = new ArrayList<>();
 

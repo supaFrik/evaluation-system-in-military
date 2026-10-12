@@ -11,6 +11,7 @@ import {
   EmulationCriterion,
   DailyLockStatus,
   UnitTier,
+  MilitaryUnit,
 } from '@/lib/types';
 import CascadingUnitSelector from '@/components/layout/cascading-unit-selector';
 import { QUICK_VIOLATION_PRESETS } from '@/lib/mock-data';
@@ -64,6 +65,7 @@ interface DailyScoringSheetProps {
   selectedUnitId?: string;
   selectedTier?: UnitTier;
   onSelectUnit?: (unitId: string, tier: UnitTier) => void;
+  units?: MilitaryUnit[];
   allowedRootId?: string;
 }
 
@@ -91,6 +93,7 @@ export function DailyScoringSheet({
   selectedUnitId: propSelectedUnitId,
   selectedTier: propSelectedTier,
   onSelectUnit: propOnSelectUnit,
+  units,
   allowedRootId,
 }: DailyScoringSheetProps) {
   const [localUnitId, setLocalUnitId] = useState<string>('C1');
@@ -107,6 +110,10 @@ export function DailyScoringSheet({
 
   const [localScores, setLocalScores] = useState<Record<string, DailyScore>>({});
   const [inlineEditState, setInlineEditState] = useState<InlineEditState | null>(null);
+
+  React.useEffect(() => {
+    setInlineEditState(null);
+  }, [activeUnitId]);
 
   // Modals for Lock / Unlock
   const [isLockModalOpen, setIsLockModalOpen] = useState(false);
@@ -126,8 +133,13 @@ export function DailyScoringSheet({
   const activeCriteria = criteria.filter((c) => c.isActive);
 
   // Filter soldiers belonging to the selected unit (or all soldiers if regiment selected)
+  const isRegiment =
+    activeUnitId === 'e335' ||
+    propSelectedTier === 'REGIMENT' ||
+    units?.find((u) => u.id === activeUnitId)?.tier === 'REGIMENT';
+
   const platoonSoldiers = React.useMemo(() => {
-    if (activeUnitId === 'e335') return soldiers;
+    if (isRegiment) return soldiers;
     const matched = soldiers.filter(
       (s) =>
         s.battalionId === activeUnitId ||
@@ -136,7 +148,7 @@ export function DailyScoringSheet({
         s.squadId === activeUnitId
     );
     return matched;
-  }, [soldiers, activeUnitId]);
+  }, [soldiers, activeUnitId, isRegiment]);
 
   const isLocked = lockStatus.isLocked;
 
@@ -472,65 +484,44 @@ export function DailyScoringSheet({
         selectedUnitId={activeUnitId}
         onSelectUnit={handleUnitSelect}
         allowedRootId={allowedRootId}
+        units={units}
       />
 
-      {/* ── Daily Lock & Approval Status Banner ──────────────────────── */}
-      <div
-        className={`border rounded-lg p-4 flex flex-col md:flex-row md:items-center justify-between gap-3 shadow-sm transition-all ${
-          isLocked
-            ? 'bg-amber-50/90 border-amber-300 text-amber-950'
-            : 'bg-emerald-50/90 border-emerald-300 text-emerald-950'
-        }`}
-      >
-        <div className="flex items-start md:items-center gap-3">
-          <div
-            className={`p-2.5 rounded-full shrink-0 ${
-              isLocked
-                ? 'bg-amber-200 text-amber-900 border border-amber-300'
-                : 'bg-emerald-200 text-emerald-900 border border-emerald-300'
-            }`}
-          >
-            {isLocked ? <Lock className="w-5 h-5" /> : <Unlock className="w-5 h-5" />}
-          </div>
-          <div>
-            <div className="flex items-center gap-2 flex-wrap">
-              {isLocked ? (
-                <span className="inline-flex items-center gap-1 rounded-[3px] border border-red-300 bg-red-100/70 px-2 py-0.5 text-[11px] font-bold uppercase tracking-wider text-[#991b1b]">
-                  <Lock className="w-3 h-3" />
-                  ĐÃ CHỐT SỔ THI ĐUA (KHÓA)
-                </span>
-              ) : (
-                <span className="inline-flex items-center gap-1.5 rounded-[3px] border border-emerald-300 bg-emerald-100/90 px-2.5 py-1 text-xs font-bold text-emerald-950 shadow-2xs">
-                  <Unlock className="w-3.5 h-3.5 text-emerald-700" />
-                  SỔ THI ĐUA ĐANG MỞ CHẤM ĐIỂM
-                </span>
-              )}
-              <span className="inline-flex items-center rounded-[3px] border border-zinc-300 bg-white px-2.5 py-1 text-xs font-mono text-zinc-900 font-semibold shadow-2xs">
-                Ngày: {selectedDate}
-              </span>
-              {isLocked && lockStatus.lockedBy && (
-                <span className="inline-flex items-center rounded-[3px] border border-zinc-200 bg-zinc-100 px-2.5 py-1 text-xs text-zinc-800 font-medium">
-                  Phê duyệt: {lockStatus.lockedBy}
-                </span>
-              )}
-            </div>
-            <p className="text-xs text-zinc-700 mt-1 font-medium">
-              {isLocked
-                ? lockStatus.lockNote || 'Sổ thi đua đã chốt sau điểm danh tối 21:00.'
-                : 'Nhập điểm và hoàn tất trước 21:00 hằng ngày.'}
-            </p>
-          </div>
+      {/* ── Daily Lock & Approval Status Bar ──────────────────────── */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 py-2 px-3 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/50 text-xs">
+        <div className="flex items-center gap-2.5 flex-wrap">
+          {isLocked ? (
+            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-semibold text-red-700 bg-red-50 border border-red-200 dark:bg-red-950/40 dark:text-red-300 dark:border-red-900">
+              <Lock className="w-3 h-3" />
+              Đã chốt sổ (21:00)
+            </span>
+          ) : (
+            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-900">
+              <Unlock className="w-3 h-3" />
+              Đang mở chấm điểm
+            </span>
+          )}
+
+          <span className="text-zinc-500 dark:text-zinc-400">
+            Ngày: <strong className="text-zinc-800 dark:text-zinc-200 font-mono">{selectedDate}</strong>
+          </span>
+
+          {isLocked && lockStatus.lockedBy && (
+            <span className="text-zinc-500 dark:text-zinc-400">
+              • Phê duyệt: <strong className="text-zinc-800 dark:text-zinc-200">{lockStatus.lockedBy}</strong>
+            </span>
+          )}
         </div>
 
         {/* Lock / Unlock actions */}
-        <div className="flex items-center gap-2 shrink-0 self-end md:self-auto">
+        <div className="flex items-center gap-2 shrink-0">
           {lockStatus.unlockHistory && lockStatus.unlockHistory.length > 0 && (
             <button
               onClick={() => setShowUnlockHistoryModal(true)}
-              className="inline-flex items-center gap-1.5 text-xs font-semibold text-zinc-700 bg-white hover:bg-zinc-100 border border-zinc-300 px-2.5 py-1.5 rounded-[3px] shadow-xs btn-tactile cursor-pointer"
+              className="inline-flex items-center gap-1 text-xs text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-200 px-2 py-1 rounded transition cursor-pointer"
               title="Xem nhật ký mở khóa sửa điểm"
             >
-              <History className="w-3.5 h-3.5 text-zinc-600" />
+              <History className="w-3.5 h-3.5" />
               <span>Nhật ký mở khóa ({lockStatus.unlockHistory.length})</span>
             </button>
           )}
@@ -540,18 +531,18 @@ export function DailyScoringSheet({
               {isLocked ? (
                 <button
                   onClick={() => setIsUnlockModalOpen(true)}
-                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold text-amber-950 bg-amber-200 hover:bg-amber-300 border border-amber-400 rounded-[3px] shadow-xs transition btn-tactile cursor-pointer"
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold text-amber-900 bg-amber-100 hover:bg-amber-200 border border-amber-300 rounded transition cursor-pointer"
                 >
                   <Unlock className="w-3.5 h-3.5" />
-                  <span>Mở khóa sổ để sửa</span>
+                  <span>Mở khóa sổ</span>
                 </button>
               ) : (
                 <button
                   onClick={() => setIsLockModalOpen(true)}
-                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold text-white bg-[#b91c1c] hover:bg-[#991b1b] rounded-[3px] shadow-xs transition btn-tactile cursor-pointer"
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold text-zinc-700 hover:text-red-700 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded transition cursor-pointer"
                 >
-                  <ShieldCheck className="w-3.5 h-3.5 text-yellow-300" />
-                  <span>Chốt sổ & Phê duyệt (21:00)</span>
+                  <ShieldCheck className="w-3.5 h-3.5 text-zinc-500" />
+                  <span>Chốt sổ</span>
                 </button>
               )}
             </>
@@ -560,52 +551,54 @@ export function DailyScoringSheet({
       </div>
 
       {/* ── Controls ─────────────────────────────────────────── */}
-      <div className="flex flex-wrap items-center justify-end gap-2.5 border-b border-zinc-200 pb-3">
-        {/* Quick link to criteria settings */}
-        {onNavigateToCriteria && (
-          <button
-            onClick={onNavigateToCriteria}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-zinc-700 bg-zinc-50 hover:bg-zinc-100 border border-zinc-300 rounded-[3px] shadow-xs btn-tactile cursor-pointer"
-            title="Cấu hình danh mục tiêu chí"
-          >
-            <SlidersHorizontal className="w-3.5 h-3.5 text-zinc-500" />
-            <span>Cấu hình tiêu chí</span>
-          </button>
-        )}
-
-        {/* Quick soldier count badge */}
-        <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-zinc-800 bg-zinc-50 border border-zinc-200 rounded-[3px]">
-          <span>Quân số:</span>
-          <strong className="text-zinc-900 font-bold">{platoonSoldiers.length}</strong>
-          <span className="text-zinc-500">đ/c</span>
-        </span>
-
-        <div className="flex items-center gap-1.5 text-xs text-zinc-700 bg-white border border-zinc-300 rounded-[3px] px-2.5 py-1 shadow-2xs">
-          <Calendar className="h-3.5 w-3.5 text-zinc-500" />
-          <input
-            type="date"
-            value={selectedDate}
-            onChange={(e) => {
-              onChangeDate(e.target.value);
-              setLocalScores({});
-              setInlineEditState(null);
-            }}
-            className="text-xs text-zinc-900 font-medium focus:outline-none bg-transparent cursor-pointer"
-          />
+      <div className="flex flex-wrap items-center justify-between gap-2.5 pt-1">
+        <div className="flex items-center gap-2 text-xs">
+          <span className="text-zinc-500">
+            Quân số: <strong className="text-zinc-900 dark:text-zinc-100 font-semibold">{platoonSoldiers.length}</strong> đồng chí
+          </span>
+          {onNavigateToCriteria && (
+            <>
+              <span className="text-zinc-300 dark:text-zinc-700">•</span>
+              <button
+                onClick={onNavigateToCriteria}
+                className="inline-flex items-center gap-1 text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-200 transition cursor-pointer"
+                title="Cấu hình danh mục tiêu chí"
+              >
+                <SlidersHorizontal className="w-3 h-3" />
+                <span>Quy chế</span>
+              </button>
+            </>
+          )}
         </div>
 
-        <button
-          onClick={handleSaveAll}
-          disabled={isLocked}
-          className={`inline-flex items-center gap-1.5 rounded-[3px] px-4 py-1.5 text-xs font-bold text-white transition-colors shadow-xs btn-tactile cursor-pointer ${
-            isLocked
-              ? 'bg-zinc-400 cursor-not-allowed opacity-70'
-              : 'bg-[#b91c1c] hover:bg-red-800'
-          }`}
-        >
-          <Save className="h-3.5 w-3.5" />
-          Lưu bảng điểm
-        </button>
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 text-xs text-zinc-700 dark:text-zinc-300 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-md px-2.5 py-1">
+            <Calendar className="h-3.5 w-3.5 text-zinc-400" />
+            <input
+              type="date"
+              value={selectedDate}
+              onChange={(e) => {
+                onChangeDate(e.target.value);
+                setLocalScores({});
+                setInlineEditState(null);
+              }}
+              className="text-xs text-zinc-900 dark:text-zinc-100 font-medium focus:outline-none bg-transparent cursor-pointer"
+            />
+          </div>
+
+          <button
+            onClick={handleSaveAll}
+            disabled={isLocked}
+            className={`inline-flex items-center gap-1.5 rounded-md px-3.5 py-1.5 text-xs font-semibold text-white transition cursor-pointer shadow-2xs ${
+              isLocked
+                ? 'bg-zinc-400 cursor-not-allowed opacity-70'
+                : 'bg-red-600 hover:bg-red-700'
+            }`}
+          >
+            <Save className="h-3.5 w-3.5" />
+            <span>Lưu bảng điểm</span>
+          </button>
+        </div>
       </div>
 
       {/* Mobile scroll indicator hint */}
@@ -926,7 +919,7 @@ export function DailyScoringSheet({
       {/* ── MODAL: CHỐT SỔ & PHÊ DUYỆT ───────────────────────────────── */}
       {isLockModalOpen && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-xs p-0 sm:p-4 animate-in fade-in">
-          <div className="bg-white rounded-t-xl sm:rounded-[3px] border border-zinc-300 shadow-lg w-full max-w-md p-4 sm:p-5 space-y-4 max-h-[92dvh] overflow-y-auto animate-in slide-in-from-bottom sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-200">
+          <div className="bg-white rounded-t-[4px] sm:rounded-[3px] border border-zinc-300 shadow-md w-full max-w-md p-4 sm:p-5 space-y-4 max-h-[92dvh] overflow-y-auto animate-in slide-in-from-bottom sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-200">
             {/* Mobile pull handle */}
             <div className="mx-auto -mt-1 mb-1 h-1.5 w-12 rounded-full bg-zinc-300 sm:hidden" />
 
@@ -972,7 +965,7 @@ export function DailyScoringSheet({
       {/* ── MODAL: MỞ KHÓA SỔ ĐỂ HIỆU CHỈNH ───────────────────────────── */}
       {isUnlockModalOpen && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-xs p-0 sm:p-4 animate-in fade-in">
-          <div className="bg-white rounded-t-xl sm:rounded-[3px] border border-zinc-300 shadow-lg w-full max-w-md p-4 sm:p-5 space-y-4 max-h-[92dvh] overflow-y-auto animate-in slide-in-from-bottom sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-200">
+          <div className="bg-white rounded-t-[4px] sm:rounded-[3px] border border-zinc-300 shadow-md w-full max-w-md p-4 sm:p-5 space-y-4 max-h-[92dvh] overflow-y-auto animate-in slide-in-from-bottom sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-200">
             {/* Mobile pull handle */}
             <div className="mx-auto -mt-1 mb-1 h-1.5 w-12 rounded-full bg-zinc-300 sm:hidden" />
 
@@ -1019,7 +1012,7 @@ export function DailyScoringSheet({
       {/* ── MODAL: NHẬT KÝ MỞ KHÓA (AUDIT TRAIL) ───────────────────────── */}
       {showUnlockHistoryModal && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-xs p-0 sm:p-4 animate-in fade-in">
-          <div className="bg-white rounded-t-xl sm:rounded-[3px] border border-zinc-300 shadow-lg w-full max-w-lg p-4 sm:p-5 space-y-4 max-h-[92dvh] overflow-y-auto animate-in slide-in-from-bottom sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-200">
+          <div className="bg-white rounded-t-[4px] sm:rounded-[3px] border border-zinc-300 shadow-md w-full max-w-lg p-4 sm:p-5 space-y-4 max-h-[92dvh] overflow-y-auto animate-in slide-in-from-bottom sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-200">
             {/* Mobile pull handle */}
             <div className="mx-auto -mt-1 mb-1 h-1.5 w-12 rounded-full bg-zinc-300 sm:hidden" />
 
@@ -1065,7 +1058,7 @@ export function DailyScoringSheet({
       {/* ── FULL EDIT MODAL FOR SOLDIER SCORE & DECISION ATTACHMENT ── */}
       {editingSoldier && dialogScore && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 p-0 sm:p-4 animate-in fade-in backdrop-blur-xs">
-          <div className="w-full max-w-2xl rounded-t-xl sm:rounded-[3px] border border-zinc-300 bg-white p-4 sm:p-6 shadow-lg max-h-[92dvh] overflow-y-auto space-y-4 sm:space-y-5 animate-in slide-in-from-bottom sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-200">
+          <div className="w-full max-w-2xl rounded-t-[4px] sm:rounded-[3px] border border-zinc-300 bg-white p-4 sm:p-6 shadow-md max-h-[92dvh] overflow-y-auto space-y-4 sm:space-y-5 animate-in slide-in-from-bottom sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-200">
             {/* Mobile pull handle */}
             <div className="mx-auto -mt-1 mb-2 h-1.5 w-12 rounded-full bg-zinc-300 sm:hidden" />
             {/* Modal Header */}

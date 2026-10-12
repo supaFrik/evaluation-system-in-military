@@ -1,4 +1,4 @@
-export type UserRole = 'COMMANDER' | 'SCORER' | 'SOLDIER';
+export type UserRole = 'ADMIN' | 'SCORER' | 'SOLDIER' | 'COMMANDER' | 'USER';
 
 // ── Cấp đơn vị trong hệ thống phân cấp Quân đội ──────────────────
 export type UnitTier = 'REGIMENT' | 'BATTALION' | 'COMPANY' | 'PLATOON' | 'SQUAD';
@@ -15,21 +15,45 @@ export interface MilitaryUnit {
   totalSoldiers: number;
 }
 
+// ── Trạng thái và thực thể Khiếu nại Thi đua ─────────────────────
+export type AppealStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
+
+export interface EmulationAppeal {
+  id: string;
+  soldierId: string;
+  soldierName: string;
+  unitId: string;
+  unitName: string;
+  date: string;
+  criterionId?: string;
+  criterionName?: string;
+  deductionPoints?: number;
+  reason: string;
+  status: AppealStatus;
+  createdAt: string;
+  resolvedAt?: string;
+  resolvedBy?: string;
+  reply?: string;
+}
+
 // ── Tài khoản người dùng (mở rộng phạm vi phân quyền) ─────────────
 export interface UserAccount {
   id: string;
   username: string;
   name: string;
-  rank: string; // Cấp bậc (Đại úy, Trung sĩ, Binh nhất...)
+  rank?: string; // Cấp bậc (Đại úy, Trung sĩ, Binh nhất...)
   role: UserRole;
-  roleTitle: string; // Chức vụ: Trung đoàn trưởng, Tiểu đoàn trưởng, Đại đội trưởng...
-  soldierId?: string; // Liên kết với hồ sơ quân nhân nếu là SOLDIER
+  roleTitle?: string; // Chức vụ: Quản trị viên, Chỉ huy, Chiến sĩ...
+  soldierId?: string; // Liên kết với hồ sơ quân nhân
   platoonId?: string; // backward compat
   phone?: string;
+  email?: string;
+  status?: string; // PENDING, ACTIVE
   avatarUrl?: string;
   // Mở rộng phạm vi phân quyền phân cấp
   unitScopeTier?: UnitTier; // Cấp đơn vị phụ trách
-  assignedUnitId?: string; // ID đơn vị được giao quyền
+  assignedUnitIds: string[]; // Các đơn vị được gán quyền chấm điểm
+  assignedUnitId?: string; // ID đơn vị được giao quyền (fallback tương thích ngược)
 }
 
 // ── Platoon cũ (backward compat — sẽ bị thay thế bởi MilitaryUnit) ─

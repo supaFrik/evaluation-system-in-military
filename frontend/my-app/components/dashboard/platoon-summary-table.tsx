@@ -484,7 +484,7 @@ export function PlatoonSummaryTable({
       {/* Modal Chỉnh sửa nhận xét thi đua đơn vị */}
       {editingRemarkUnit && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-md bg-white rounded-[3px] border border-zinc-200 shadow-xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+          <div className="w-full max-w-md bg-white rounded-[3px] border border-zinc-300 shadow-md overflow-hidden animate-in fade-in zoom-in-95 duration-150">
             <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-200 bg-zinc-50">
               <span className="text-sm font-bold text-zinc-900">
                 Nhận xét thi đua — {editingRemarkUnit.name}

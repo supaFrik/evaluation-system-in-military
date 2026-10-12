@@ -4,13 +4,11 @@ import React from 'react';
 import Image from 'next/image';
 import { UserAccount } from '@/lib/types';
 import { LogOut, Menu, ChevronDown, User, BookOpen, ArrowLeftRight } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuGroup,
   DropdownMenuItem,
-  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
@@ -123,10 +121,10 @@ export function Header({
               />
               <DropdownMenuContent
                 align="end"
-                className="w-72 bg-white border border-zinc-200/90 shadow-lg rounded-md p-1.5 text-xs select-none focus:outline-none"
+                className="w-72 bg-white border border-zinc-200 shadow-md rounded-[3px] p-1.5 text-xs select-none focus:outline-none"
               >
                 {/* User Identity Header */}
-                <div className="flex items-center gap-3 p-2 rounded-sm bg-zinc-50/80 border border-zinc-100">
+                <div className="flex items-center gap-3 p-2 rounded-[3px] bg-zinc-50 border border-zinc-200">
                   <div className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-[4px] overflow-hidden border border-zinc-200 bg-white shadow-2xs">
                     <Image
                       src={currentUser.avatarUrl || '/default-avatar.png'}
@@ -153,20 +151,30 @@ export function Header({
 
                 {/* Quick Navigation Shortcuts */}
                 <DropdownMenuGroup>
-                  <DropdownMenuItem
-                    onClick={() => onNavigateTab?.('soldier_profile')}
-                    className="cursor-pointer gap-2.5 py-2 px-2.5 text-xs text-zinc-700 hover:bg-zinc-100 hover:text-zinc-900 rounded-sm font-medium transition-colors"
-                  >
-                    <User className="h-4 w-4 text-zinc-500 shrink-0" />
-                    <span>Hồ sơ cá nhân</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={() => onNavigateTab?.('criteria')}
-                    className="cursor-pointer gap-2.5 py-2 px-2.5 text-xs text-zinc-700 hover:bg-zinc-100 hover:text-zinc-900 rounded-sm font-medium transition-colors"
-                  >
-                    <BookOpen className="h-4 w-4 text-zinc-500 shrink-0" />
-                    <span>Quy chế thi đua</span>
-                  </DropdownMenuItem>
+                  {(currentUser.role === 'ADMIN' ||
+                    currentUser.role === 'COMMANDER' ||
+                    String(currentUser.role || '').includes('ADMIN') ||
+                    currentUser.role === 'SOLDIER' ||
+                    currentUser.role === 'USER') && (
+                    <DropdownMenuItem
+                      onClick={() => onNavigateTab?.('soldier_profile')}
+                      className="cursor-pointer gap-2.5 py-2 px-2.5 text-xs text-zinc-700 hover:bg-zinc-100 hover:text-zinc-900 rounded-sm font-medium transition-colors"
+                    >
+                      <User className="h-4 w-4 text-zinc-500 shrink-0" />
+                      <span>Hồ sơ cá nhân</span>
+                    </DropdownMenuItem>
+                  )}
+                  {(currentUser.role === 'ADMIN' ||
+                    currentUser.role === 'COMMANDER' ||
+                    String(currentUser.role || '').includes('ADMIN')) && (
+                    <DropdownMenuItem
+                      onClick={() => onNavigateTab?.('criteria')}
+                      className="cursor-pointer gap-2.5 py-2 px-2.5 text-xs text-zinc-700 hover:bg-zinc-100 hover:text-zinc-900 rounded-sm font-medium transition-colors"
+                    >
+                      <BookOpen className="h-4 w-4 text-zinc-500 shrink-0" />
+                      <span>Quy chế thi đua</span>
+                    </DropdownMenuItem>
+                  )}
                 </DropdownMenuGroup>
 
                 <DropdownMenuSeparator className="my-1.5 bg-zinc-100" />

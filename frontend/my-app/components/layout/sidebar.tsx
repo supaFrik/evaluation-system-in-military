@@ -11,9 +11,11 @@ import {
   BookOpen,
   User,
   CalendarCheck,
-  UserCheck,
   X,
   Shield,
+  FolderTree,
+  MessageSquare,
+  Award,
 } from 'lucide-react';
 
 export type NavTabId =
@@ -24,7 +26,9 @@ export type NavTabId =
   | 'soldiers'
   | 'soldier_profile'
   | 'reports'
-  | 'criteria';
+  | 'criteria'
+  | 'units'
+  | 'appeals';
 
 interface SidebarProps {
   role: UserRole;
@@ -49,35 +53,44 @@ export function Sidebar({
 }: SidebarProps) {
   const [internalExpanded, setInternalExpanded] = useState(true);
   const isExpanded = controlledExpanded !== undefined ? controlledExpanded : internalExpanded;
-  const toggleExpand = controlledToggle || (() => setInternalExpanded((prev) => !prev));
 
   let menuItems: { id: NavTabId; label: string; icon: React.ComponentType<{ className?: string }> }[] = [];
 
-  if (role === 'COMMANDER') {
+  const isRoleAdmin = role === 'ADMIN' || role === 'COMMANDER' || String(role || '').includes('ADMIN');
+  const isRoleScorer = role === 'SCORER';
+  const isRoleSoldier = role === 'SOLDIER' || role === 'USER';
+
+  if (isRoleAdmin) {
     menuItems = [
       { id: 'platoon_summary', label: 'Bảng theo dõi thi đua', icon: Trophy },
       { id: 'daily_scoring', label: 'Nhập điểm thi đua', icon: ClipboardCheck },
       { id: 'commendations', label: 'Biểu dương & Nhắc nhở', icon: Megaphone },
       { id: 'soldiers', label: 'Danh sách quân nhân', icon: Users },
+      { id: 'units', label: 'Cây đơn vị quân đội', icon: FolderTree },
+      { id: 'appeals', label: 'Xử lý khiếu nại', icon: MessageSquare },
       { id: 'reports', label: 'Báo cáo & Đánh giá', icon: BarChart3 },
       { id: 'criteria', label: 'Quy chế chấm điểm', icon: BookOpen },
     ];
-  } else if (role === 'SCORER') {
+  } else if (isRoleScorer) {
     menuItems = [
       { id: 'daily_scoring', label: 'Nhập điểm thi đua', icon: ClipboardCheck },
-      { id: 'platoon_summary', label: 'Bảng theo dõi thi đua', icon: Trophy },
+      { id: 'platoon_summary', label: 'Bảng thi đua phân đội', icon: Trophy },
       { id: 'commendations', label: 'Biểu dương & Nhắc nhở', icon: Megaphone },
-      { id: 'soldiers', label: 'Danh sách quân nhân', icon: Users },
-      { id: 'criteria', label: 'Quy chế chấm điểm', icon: BookOpen },
+      { id: 'appeals', label: 'Xử lý khiếu nại', icon: MessageSquare },
+    ];
+  } else if (isRoleSoldier) {
+    menuItems = [
+      { id: 'individual_emulation', label: 'Kết quả thi đua của tôi', icon: Award },
+      { id: 'commendations', label: 'Biểu dương & Khen thưởng', icon: Megaphone },
+      { id: 'appeals', label: 'Hòm thư khiếu nại & Ý kiến', icon: MessageSquare },
     ];
   } else {
-    // SOLDIER
     menuItems = [
-      { id: 'soldier_profile', label: 'Sơ lược quân nhân', icon: User },
-      { id: 'daily_scoring', label: 'Điểm thi đua cá nhân', icon: CalendarCheck },
       { id: 'platoon_summary', label: 'Bảng theo dõi thi đua', icon: Trophy },
+      { id: 'daily_scoring', label: 'Bảng điểm thi đua', icon: CalendarCheck },
       { id: 'commendations', label: 'Biểu dương & Nhắc nhở', icon: Megaphone },
       { id: 'criteria', label: 'Quy chế thi đua', icon: BookOpen },
+      { id: 'soldier_profile', label: 'Sơ lược quân nhân', icon: User },
     ];
   }
 
@@ -93,7 +106,7 @@ export function Sidebar({
 
       <aside
         className={`fixed bottom-0 left-0 z-50 md:z-30 border-r border-zinc-200 bg-white flex flex-col justify-between transition-all duration-200 select-none overflow-y-auto ${
-          isMobileOpen ? 'translate-x-0 top-0 shadow-2xl' : '-translate-x-full md:translate-x-0'
+          isMobileOpen ? 'translate-x-0 top-0 shadow-md' : '-translate-x-full md:translate-x-0'
         } ${
           'md:top-14 md:shadow-none ' + (isExpanded ? 'w-64 md:w-64' : 'w-64 md:w-[68px]')
         }`}

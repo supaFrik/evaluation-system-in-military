@@ -31,6 +31,8 @@ public interface SoldierRepository extends JpaRepository<Soldier, String> {
            "(:unitId IS NULL OR :unitId = '' OR " +
            " LOWER(s.squadId) = LOWER(:unitId) OR " +
            " LOWER(s.platoonId) = LOWER(:unitId) OR " +
+           " (LOWER(:unitId) = 'c1-b1' AND LOWER(s.platoonId) = 'b1') OR " +
+           " (LOWER(:unitId) = 'b1' AND LOWER(s.platoonId) = 'c1-b1') OR " +
            " LOWER(s.companyId) = LOWER(:unitId) OR " +
            " LOWER(s.battalionId) = LOWER(:unitId)) AND " +
            "(:search IS NULL OR :search = '' OR " +
@@ -43,6 +45,8 @@ public interface SoldierRepository extends JpaRepository<Soldier, String> {
     @Query("SELECT s FROM Soldier s WHERE " +
            "LOWER(s.squadId) = LOWER(:unitId) OR " +
            "LOWER(s.platoonId) = LOWER(:unitId) OR " +
+           "(LOWER(:unitId) = 'c1-b1' AND LOWER(s.platoonId) = 'b1') OR " +
+           "(LOWER(:unitId) = 'b1' AND LOWER(s.platoonId) = 'c1-b1') OR " +
            "LOWER(s.companyId) = LOWER(:unitId) OR " +
            "LOWER(s.battalionId) = LOWER(:unitId)")
     List<Soldier> findAllByAnyUnitId(@Param("unitId") String unitId);

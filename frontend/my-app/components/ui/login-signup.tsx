@@ -10,22 +10,16 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { authService } from "@/lib/api";
+import { notify } from "@/lib/notify";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Award,
-  UserCheck,
-  User,
   Eye,
   EyeOff,
-  Lock,
-  Info,
-  Shield,
+  Mail,
+  Phone,
+  ShieldCheck,
+  CheckCircle2,
+  RefreshCw,
 } from "lucide-react";
 import React, { useState } from "react";
 
@@ -36,7 +30,7 @@ const MilitaryStarEmblem = ({ className = "h-12 w-12" }: { className?: string })
 );
 
 export interface LoginSignupProps {
-  onSuccess?: (userData: { email: string; name?: string; role?: string }) => void;
+  onSuccess?: (userData: { email: string; name?: string; role?: string; password?: string }) => void;
   onToggleMode?: () => void;
   defaultMode?: "signin" | "signup";
 }
@@ -45,163 +39,351 @@ export function SignupForm({
   onSuccess,
   onSwitchToSignIn,
 }: {
-  onSuccess?: (userData: { email: string; name?: string; role?: string }) => void;
+  onSuccess?: (userData: { email: string; name?: string; role?: string; password?: string }) => void;
   onSwitchToSignIn?: () => void;
 }) {
+  const [method, setMethod] = useState<"email" | "phone">("email");
   const [showPassword, setShowPassword] = useState(false);
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState("COMMANDER");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // OTP Verification state
+  const [isOtpStep, setIsOtpStep] = useState(false);
+  const [otpCode, setOtpCode] = useState("");
+  const [registeredEmail, setRegisteredEmail] = useState("");
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [isResending, setIsResending] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    onSuccess?.({
-      email: email || "quannhan@donvi.vn",
-      name: `${lastName} ${firstName}`.trim() || "Quân nhân",
-      role,
-    });
+    if (!name.trim()) {
+      notify.error("Lỗi", "Vui lòng nhập Họ và tên");
+      return;
+    }
+    if (password.length < 6) {
+      notify.error("Lỗi", "Mật khẩu tối thiểu 6 ký tự");
+      return;
+    }
+    if (password !== confirmPassword) {
+      notify.error("Lỗi", "Mật khẩu xác nhận không khớp");
+      return;
+    }
+
+    if (method === "email" && !email.trim()) {
+      notify.error("Lỗi", "Vui lòng nhập địa chỉ Gmail");
+      return;
+    }
+    if (method === "phone" && !phone.trim()) {
+      notify.error("Lỗi", "Vui lòng nhập số điện thoại");
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const payload = {
+        name: name.trim(),
+        email: method === "email" ? email.trim() : undefined,
+        phone: method === "phone" ? phone.trim() : undefined,
+        password,
+      };
+
+      await authService.register(payload);
+
+      if (method === "email") {
+        setRegisteredEmail(email.trim());
+        setIsOtpStep(true);
+        notify.success(
+          "Đăng ký bước 1 thành công!",
+          "Mã OTP đã được gửi đến Gmail của bạn. Vui lòng kiểm tra hộp thư để kích hoạt tài khoản."
+        );
+      } else {
+        notify.success("Đăng ký thành công!", "Tài khoản của bạn đã được khởi tạo.");
+        // Đăng nhập tự động với SĐT
+        if (onSuccess) {
+          onSuccess({ email: phone.trim(), password });
+        } else {
+          onSwitchToSignIn?.();
+        }
+      }
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Không thể đăng ký tài khoản";
+      notify.error("Đăng ký thất bại", message);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  return (
-    <div className="flex items-center justify-center min-h-[550px] w-full py-4">
-      <div className="w-full max-w-md">
-        <Card className="border border-zinc-300 shadow-xs rounded-[4px] pb-0 bg-white">
-          <CardHeader className="flex flex-col items-center space-y-1.5 pb-4 pt-6">
-            <MilitaryStarEmblem className="h-12 w-12 text-2xl" />
-            <div className="space-y-0.5 flex flex-col items-center text-center">
-              <h2 className="text-lg font-bold text-zinc-900 uppercase tracking-tight">
-                Đăng ký tài khoản
-              </h2>
-              <p className="text-xs text-zinc-500">Hệ thống quản lý và theo dõi thi đua</p>
+  const handleVerifyOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!otpCode.trim()) {
+      notify.error("Lỗi", "Vui lòng nhập mã OTP 6 số");
+      return;
+    }
+
+    setIsVerifying(true);
+    try {
+      const authData = await authService.verifyOtp({
+        identifier: registeredEmail,
+        otpCode: otpCode.trim(),
+      });
+
+      notify.success(
+        "Kích hoạt thành công!",
+        `Xin chào ${authData.user.name}. Tài khoản của bạn đã sẵn sàng.`
+      );
+
+      setTimeout(() => {
+        const search = typeof window !== 'undefined' ? window.location.search : '';
+        window.location.replace('/' + search);
+      }, 500);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Mã OTP không đúng hoặc đã hết hạn";
+      notify.error("Xác thực OTP thất bại", message);
+    } finally {
+      setIsVerifying(false);
+    }
+  };
+
+  const handleResendOtp = async () => {
+    setIsResending(true);
+    try {
+      await authService.resendOtp({ identifier: registeredEmail });
+      notify.success("Đã gửi lại OTP", "Mã xác thực mới đã được gửi tới Gmail của bạn.");
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Không thể gửi lại mã OTP";
+      notify.error("Lỗi gửi lại OTP", message);
+    } finally {
+      setIsResending(false);
+    }
+  };
+
+  // ── Màn hình nhập OTP khi đăng ký qua Gmail ──
+  if (isOtpStep) {
+    return (
+      <div className="flex items-center justify-center w-full py-1">
+        <div className="mx-auto w-full max-w-sm space-y-4 rounded-[4px] border border-zinc-300 bg-white p-6 shadow-xs">
+          <div className="text-center space-y-1">
+            <div className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-red-50 text-[#b91c1c] mb-1">
+              <ShieldCheck className="h-6 w-6" />
             </div>
-          </CardHeader>
-          <CardContent className="space-y-4 px-6 sm:px-8">
-            <form onSubmit={handleSubmit} className="space-y-3.5 text-xs">
-              <div className="space-y-1.5">
-                <Label htmlFor="role" className="font-semibold text-zinc-700">Vai trò / Nhiệm vụ quân sự</Label>
-                <Select defaultValue="COMMANDER" onValueChange={(val) => val && setRole(val)}>
-                  <SelectTrigger
-                    id="role"
-                    className="rounded-[3px] border-zinc-300 [&>span]:flex [&>span]:items-center [&>span]:gap-2"
-                  >
-                    <SelectValue placeholder="Chọn vai trò" />
-                  </SelectTrigger>
-                  <SelectContent className="rounded-[3px] border-zinc-300">
-                    <SelectItem value="COMMANDER">
-                      <Award size={15} className="text-[#b91c1c]" aria-hidden="true" />
-                      <span className="truncate">Chỉ huy (Đại đội trưởng / Phó)</span>
-                    </SelectItem>
-                    <SelectItem value="SCORER">
-                      <UserCheck size={15} className="text-zinc-600" aria-hidden="true" />
-                      <span className="truncate">Người chấm điểm (Trực ban / Tiểu đội trưởng)</span>
-                    </SelectItem>
-                    <SelectItem value="SOLDIER">
-                      <User size={15} className="text-zinc-600" aria-hidden="true" />
-                      <span className="truncate">Quân nhân (Chiến sĩ)</span>
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+            <h2 className="text-lg font-bold text-zinc-900 uppercase tracking-tight">
+              Xác thực mã OTP
+            </h2>
+            <p className="text-xs text-zinc-500">
+              Nhập mã gồm 6 chữ số đã gửi về Gmail: <br />
+              <strong className="text-zinc-800">{registeredEmail}</strong>
+            </p>
+          </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <Label htmlFor="lastName" className="font-semibold text-zinc-700">Họ và đệm</Label>
-                  <Input
-                    id="lastName"
-                    placeholder="Nguyễn Văn"
-                    value={lastName}
-                    onChange={(e) => setLastName(e.target.value)}
-                    className="rounded-[3px] border-zinc-300"
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="firstName" className="font-semibold text-zinc-700">Tên</Label>
-                  <Input
-                    id="firstName"
-                    placeholder="Bình"
-                    value={firstName}
-                    onChange={(e) => setFirstName(e.target.value)}
-                    className="rounded-[3px] border-zinc-300"
-                  />
-                </div>
-              </div>
+          <form onSubmit={handleVerifyOtp} className="space-y-3.5 text-xs">
+            <div>
+              <Label htmlFor="otp-input" className="font-semibold text-zinc-700">
+                Mã xác thực OTP <span className="text-[#b91c1c]">*</span>
+              </Label>
+              <Input
+                id="otp-input"
+                className="mt-1 text-center font-mono tracking-widest text-lg font-bold rounded-[3px] border-zinc-300 min-h-[44px]"
+                placeholder="123456"
+                maxLength={6}
+                value={otpCode}
+                onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ""))}
+                required
+                autoFocus
+              />
+            </div>
 
-              <div className="space-y-1.5">
-                <Label htmlFor="email" className="font-semibold text-zinc-700">Tên đăng nhập / Số thẻ QN</Label>
-                <Input
-                  id="email"
-                  type="text"
-                  placeholder="chamdiem hoặc số thẻ quân nhân"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="rounded-[3px] border-zinc-300"
-                  required
-                />
-              </div>
+            <Button
+              type="submit"
+              disabled={isVerifying}
+              className="w-full min-h-[44px] bg-[#b91c1c] hover:bg-[#991b1b] text-white font-semibold text-xs py-2.5 rounded-[3px] shadow-xs transition-colors cursor-pointer"
+            >
+              {isVerifying ? "Đang xác thực..." : "Kích hoạt tài khoản & Đăng nhập"}
+            </Button>
 
-              <div className="space-y-1.5">
-                <Label htmlFor="password" className="font-semibold text-zinc-700">Mật khẩu</Label>
-                <div className="relative">
-                  <Input
-                    id="password"
-                    type={showPassword ? "text" : "password"}
-                    className="pr-10 rounded-[3px] border-zinc-300"
-                    placeholder="Nhập mật khẩu"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                  />
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className="absolute right-0 top-0 h-full px-3 text-zinc-400 hover:text-zinc-700 hover:bg-transparent"
-                    onClick={() => setShowPassword(!showPassword)}
-                    aria-label={showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
-                  >
-                    {showPassword ? (
-                      <EyeOff className="h-4 w-4" />
-                    ) : (
-                      <Eye className="h-4 w-4" />
-                    )}
-                  </Button>
-                </div>
-              </div>
-
-              <div className="flex items-center space-x-2 pt-1">
-                <Checkbox id="terms" defaultChecked className="rounded-[2px] border-zinc-300" />
-                <label htmlFor="terms" className="text-xs text-zinc-600">
-                  Tôi cam kết chấp hành nghiêm{" "}
-                  <span className="font-semibold text-zinc-900">
-                    Quy chế thi đua
-                  </span>{" "}
-                  và{" "}
-                  <span className="font-semibold text-zinc-900">
-                    Kỷ luật quân đội
-                  </span>
-                </label>
-              </div>
-
-              <Button type="submit" className="w-full bg-[#b91c1c] text-white hover:bg-[#991b1b] font-semibold text-xs py-2 rounded-[3px] transition-colors shadow-xs">
-                Tạo tài khoản mới
-              </Button>
-            </form>
-          </CardContent>
-          <CardFooter className="flex justify-center border-t border-zinc-100 !py-3.5">
-            <p className="text-center text-xs text-zinc-600">
-              Đã có tài khoản?{" "}
+            <div className="flex items-center justify-between text-xs pt-1 border-t border-zinc-100">
               <button
                 type="button"
-                onClick={onSwitchToSignIn}
-                className="hover:underline font-semibold text-[#b91c1c]"
+                onClick={handleResendOtp}
+                disabled={isResending}
+                className="inline-flex items-center gap-1 text-[#b91c1c] hover:underline cursor-pointer"
               >
-                Đăng nhập ngay
+                <RefreshCw size={13} className={isResending ? "animate-spin" : ""} />
+                <span>Gửi lại mã OTP</span>
               </button>
-            </p>
-          </CardFooter>
-        </Card>
+
+              <button
+                type="button"
+                onClick={() => setIsOtpStep(false)}
+                className="text-zinc-500 hover:text-zinc-800"
+              >
+                Quay lại
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex items-center justify-center w-full py-1">
+      <div className="mx-auto w-full max-w-sm space-y-4 rounded-[4px] border border-zinc-300 bg-white p-6 shadow-xs">
+        <div className="text-center space-y-1">
+          <h2 className="text-lg font-bold text-zinc-900 uppercase tracking-tight">
+            Đăng ký tài khoản quân nhân
+          </h2>
+          <p className="text-xs text-zinc-500">Quyền USER: Đăng ký qua Gmail hoặc Số điện thoại</p>
+        </div>
+
+        {/* Tab chuyển đổi hình thức đăng ký */}
+        <div className="grid grid-cols-2 gap-1.5 p-1 bg-zinc-100 rounded-[4px]">
+          <button
+            type="button"
+            onClick={() => setMethod("email")}
+            className={`flex items-center justify-center gap-1.5 py-1.5 text-xs font-semibold rounded-[3px] transition-all ${
+              method === "email"
+                ? "bg-white text-[#b91c1c] shadow-xs"
+                : "text-zinc-600 hover:text-zinc-900"
+            }`}
+          >
+            <Mail size={14} />
+            <span>Qua Gmail</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setMethod("phone")}
+            className={`flex items-center justify-center gap-1.5 py-1.5 text-xs font-semibold rounded-[3px] transition-all ${
+              method === "phone"
+                ? "bg-white text-[#b91c1c] shadow-xs"
+                : "text-zinc-600 hover:text-zinc-900"
+            }`}
+          >
+            <Phone size={14} />
+            <span>Qua Số ĐT</span>
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-3 text-xs">
+          <div>
+            <Label htmlFor="signup-name" className="font-semibold text-zinc-700">
+              Họ và tên quân nhân <span className="text-[#b91c1c]">*</span>
+            </Label>
+            <Input
+              id="signup-name"
+              placeholder="Nguyễn Văn An"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="mt-1 rounded-[3px] border-zinc-300 min-h-[40px] text-xs"
+              required
+            />
+          </div>
+
+          {method === "email" ? (
+            <div>
+              <Label htmlFor="signup-email" className="font-semibold text-zinc-700">
+                Địa chỉ Gmail <span className="text-[#b91c1c]">*</span>
+              </Label>
+              <Input
+                id="signup-email"
+                type="email"
+                placeholder="nguyenvanan@gmail.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="mt-1 rounded-[3px] border-zinc-300 min-h-[40px] text-xs"
+                required
+              />
+              <span className="text-[10.5px] text-zinc-400 mt-0.5 block">
+                Mỗi tài khoản gắn với 1 Gmail duy nhất (có xác thực OTP).
+              </span>
+            </div>
+          ) : (
+            <div>
+              <Label htmlFor="signup-phone" className="font-semibold text-zinc-700">
+                Số điện thoại di động <span className="text-[#b91c1c]">*</span>
+              </Label>
+              <Input
+                id="signup-phone"
+                type="tel"
+                placeholder="0912345678"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                className="mt-1 rounded-[3px] border-zinc-300 min-h-[40px] text-xs"
+                required
+              />
+              <span className="text-[10.5px] text-zinc-400 mt-0.5 block">
+                Mỗi tài khoản gắn với 1 Số điện thoại duy nhất.
+              </span>
+            </div>
+          )}
+
+          <div>
+            <Label htmlFor="signup-password" className="font-semibold text-zinc-700">
+              Mật khẩu <span className="text-[#b91c1c]">*</span>
+            </Label>
+            <div className="relative mt-1">
+              <Input
+                id="signup-password"
+                type={showPassword ? "text" : "password"}
+                placeholder="Tối thiểu 6 ký tự"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="rounded-[3px] border-zinc-300 min-h-[40px] pr-10 text-xs"
+                required
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute inset-y-0 right-0 px-3 text-zinc-400 hover:text-zinc-700 flex items-center"
+              >
+                {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
+              </button>
+            </div>
+          </div>
+
+          <div>
+            <Label htmlFor="signup-confirm-password" className="font-semibold text-zinc-700">
+              Xác nhận mật khẩu <span className="text-[#b91c1c]">*</span>
+            </Label>
+            <Input
+              id="signup-confirm-password"
+              type="password"
+              placeholder="Nhập lại mật khẩu"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              className="mt-1 rounded-[3px] border-zinc-300 min-h-[40px] text-xs"
+              required
+            />
+          </div>
+
+          <div className="rounded-[3px] bg-zinc-50 border border-zinc-200 p-2 text-[11px] text-zinc-600 space-y-0.5">
+            <div className="font-semibold text-zinc-800">Lưu ý phân quyền:</div>
+            <div>• Tài khoản tự đăng ký có quyền <strong className="text-zinc-900">USER</strong> (Xem điểm, xếp hạng).</div>
+            <div>• Quyền <strong className="text-[#b91c1c]">ADMIN</strong> do cấp trên cấp trực tiếp trong hệ thống.</div>
+          </div>
+
+          <Button
+            type="submit"
+            disabled={isLoading}
+            className="w-full min-h-[44px] bg-[#b91c1c] hover:bg-[#991b1b] text-white font-semibold text-xs py-2.5 rounded-[3px] shadow-xs transition-colors cursor-pointer mt-2"
+          >
+            {isLoading ? "Đang xử lý..." : method === "email" ? "Tiếp tục & Nhận mã OTP" : "Đăng ký tài khoản"}
+          </Button>
+
+          <div className="text-center text-xs text-zinc-500 pt-2 border-t border-zinc-100">
+            Đã có tài khoản?{" "}
+            <button
+              type="button"
+              onClick={onSwitchToSignIn}
+              className="text-[#b91c1c] font-semibold hover:underline cursor-pointer"
+            >
+              Đăng nhập ngay
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   );
@@ -211,21 +393,34 @@ export function LoginForm({
   onSuccess,
   onSwitchToSignUp,
 }: {
-  onSuccess?: (userData: { email: string; name?: string; role?: string }) => void;
+  onSuccess?: (userData: { email: string; name?: string; role?: string; password?: string }) => void;
   onSwitchToSignUp?: () => void;
 }) {
   const [isVisible, setIsVisible] = useState<boolean>(false);
-  const [email, setEmail] = useState("chihuy");
-  const [password, setPassword] = useState("123456");
+  const [identifier, setIdentifier] = useState("");
+  const [password, setPassword] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
   const toggleVisibility = () => setIsVisible((prevState) => !prevState);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    onSuccess?.({
-      email: email || "chihuy",
-      name: email === "chihuy" ? "Đại úy Nguyễn Thế Anh" : "Quân nhân",
-    });
+    if (!identifier.trim() || !password) {
+      notify.error("Lỗi", "Vui lòng nhập đầy đủ thông tin");
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      if (onSuccess) {
+        onSuccess({
+          email: identifier.trim(),
+          password,
+        });
+      }
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -235,22 +430,22 @@ export function LoginForm({
           <h2 className="text-lg font-bold text-zinc-900 uppercase tracking-tight">
             Đăng nhập hệ thống
           </h2>
-          <p className="text-xs text-zinc-500">Nhập thông tin xác thực quân nhân</p>
+          <p className="text-xs text-zinc-500">Đăng nhập bằng Tên người dùng, Gmail hoặc Số điện thoại</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-3.5 text-xs">
           <div>
             <Label htmlFor="signin-email" className="font-semibold text-zinc-700">
-              Tên đăng nhập / Số thẻ quân nhân <span className="text-[#b91c1c]">*</span>
+              Tên đăng nhập / Gmail / Số điện thoại <span className="text-[#b91c1c]">*</span>
             </Label>
             <div className="relative mt-1">
               <Input
                 id="signin-email"
                 className="rounded-[3px] border-zinc-300 min-h-[44px] text-xs text-zinc-900"
-                placeholder="chihuy / chamdiem / quannhan"
+                placeholder="admin / user_demo / email@gmail.com"
                 type="text"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                value={identifier}
+                onChange={(e) => setIdentifier(e.target.value)}
                 required
               />
             </div>
@@ -271,7 +466,7 @@ export function LoginForm({
                 required
               />
               <button
-                className="text-zinc-400 hover:text-zinc-700 absolute inset-y-0 right-0 flex h-full w-11 min-h-[44px] items-center justify-center transition-colors btn-tactile cursor-pointer"
+                className="text-zinc-400 hover:text-zinc-700 absolute inset-y-0 right-0 flex h-full w-11 min-h-[44px] items-center justify-center transition-colors cursor-pointer"
                 type="button"
                 onClick={toggleVisibility}
                 aria-label={isVisible ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
@@ -289,13 +484,13 @@ export function LoginForm({
             <div className="flex items-center gap-2 min-h-[36px]">
               <Checkbox id="remember-me" defaultChecked className="rounded-[2px] border-zinc-300 cursor-pointer h-4 w-4" />
               <Label htmlFor="remember-me" className="text-xs font-normal text-zinc-600 cursor-pointer flex items-center gap-1 select-none">
-                <span>Ghi nhớ phiên đăng nhập</span>
+                <span>Ghi nhớ đăng nhập</span>
               </Label>
             </div>
             <button
               type="button"
-              onClick={() => alert('Vui lòng liên hệ Trực ban hoặc Cán bộ Đại đội để được cấp lại mật khẩu.')}
-              className="text-xs text-[#b91c1c] font-medium hover:underline transition-colors btn-tactile cursor-pointer min-h-[44px] inline-flex items-center"
+              onClick={() => alert("Vui lòng liên hệ Quản trị viên hệ thống để được cấp lại mật khẩu.")}
+              className="text-xs text-[#b91c1c] font-medium hover:underline transition-colors cursor-pointer min-h-[36px] inline-flex items-center"
             >
               Quên mật khẩu?
             </button>
@@ -303,37 +498,20 @@ export function LoginForm({
 
           <Button
             type="submit"
-            className="w-full min-h-[44px] bg-[#b91c1c] hover:bg-[#991b1b] text-white font-semibold text-xs py-2.5 rounded-[3px] shadow-xs transition-colors btn-tactile cursor-pointer"
+            disabled={isLoading}
+            className="w-full min-h-[44px] bg-[#b91c1c] hover:bg-[#991b1b] text-white font-semibold text-xs py-2.5 rounded-[3px] shadow-xs transition-colors cursor-pointer"
           >
-            Đăng nhập hệ thống
+            {isLoading ? "Đang xác thực..." : "Đăng nhập hệ thống"}
           </Button>
 
-          <div className="relative my-3 flex items-center justify-center">
-            <div className="w-full border-t border-zinc-200" />
-            <span className="bg-white px-2.5 text-xs font-semibold text-zinc-400 uppercase tracking-widest absolute">
-              HOẶC
-            </span>
-          </div>
-
-          <button
-            type="button"
-            onClick={() => onSuccess?.({ email: "chihuy", name: "Đại úy Nguyễn Thế Anh" })}
-            className="w-full min-h-[44px] flex items-center justify-center gap-2 rounded-[3px] border border-zinc-300 bg-white py-2 px-3 text-xs font-medium text-zinc-700 hover:bg-zinc-50 transition-colors shadow-2xs btn-tactile cursor-pointer"
-          >
-            <div className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-[#b91c1c] text-yellow-300 text-xs font-bold shadow-2xs">
-              ★
-            </div>
-            <span>Đăng nhập định danh VNeID</span>
-          </button>
-
-          <div className="text-center text-xs text-zinc-500 pt-1.5 border-t border-zinc-100">
+          <div className="text-center text-xs text-zinc-500 pt-2 border-t border-zinc-100">
             Chưa có tài khoản?{" "}
             <button
               type="button"
               onClick={onSwitchToSignUp}
-              className="text-[#b91c1c] font-semibold hover:underline btn-tactile cursor-pointer"
+              className="text-[#b91c1c] font-semibold hover:underline cursor-pointer"
             >
-              Đăng ký tài khoản
+              Đăng ký tài khoản USER
             </button>
           </div>
         </form>

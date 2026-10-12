@@ -472,7 +472,7 @@ export function SoldierList({
       {/* ── MODAL: TIẾP NHẬN / ĐIỀU CHUYỂN QUÂN NHÂN ── */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 p-0 sm:p-4 animate-in fade-in backdrop-blur-xs">
-          <div className="w-full max-w-xl rounded-t-xl sm:rounded-[3px] border border-zinc-300 bg-white p-4 sm:p-6 shadow-lg max-h-[92dvh] overflow-y-auto space-y-4 animate-in slide-in-from-bottom sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-200">
+          <div className="w-full max-w-xl rounded-t-[4px] sm:rounded-[3px] border border-zinc-300 bg-white p-4 sm:p-6 shadow-md max-h-[92dvh] overflow-y-auto space-y-4 animate-in slide-in-from-bottom sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-200">
             {/* Mobile pull handle */}
             <div className="mx-auto -mt-1 mb-2 h-1.5 w-12 rounded-full bg-zinc-300 sm:hidden" />
             <div className="flex items-start justify-between border-b border-zinc-200 pb-3">

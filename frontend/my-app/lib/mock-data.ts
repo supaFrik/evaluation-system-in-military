@@ -1,4 +1,4 @@
-import { UserAccount, Platoon, Soldier, DailyScore, CommendationItem, EmulationCriterion, MilitaryUnit } from './types';
+import { UserAccount, Platoon, Soldier, DailyScore, CommendationItem, EmulationCriterion, MilitaryUnit, EmulationAppeal } from './types';
 
 // ══════════════════════════════════════════════════════════════════════
 // TIÊU CHÍ THI ĐUA MẶC ĐỊNH (4 tiêu chí chuẩn)
@@ -255,6 +255,7 @@ export const MOCK_ACCOUNTS: UserAccount[] = [
     phone: '0981000001',
     avatarUrl: DEFAULT_AVATAR,
     unitScopeTier: 'REGIMENT',
+    assignedUnitIds: ['e335'],
     assignedUnitId: 'e335',
   },
   {
@@ -267,6 +268,7 @@ export const MOCK_ACCOUNTS: UserAccount[] = [
     phone: '0981000002',
     avatarUrl: DEFAULT_AVATAR,
     unitScopeTier: 'BATTALION',
+    assignedUnitIds: ['dBB4'],
     assignedUnitId: 'dBB4',
   },
   {
@@ -279,6 +281,7 @@ export const MOCK_ACCOUNTS: UserAccount[] = [
     phone: '0988123456',
     avatarUrl: DEFAULT_AVATAR,
     unitScopeTier: 'COMPANY',
+    assignedUnitIds: ['C1'],
     assignedUnitId: 'C1',
   },
   {
@@ -292,6 +295,7 @@ export const MOCK_ACCOUNTS: UserAccount[] = [
     phone: '0977654321',
     avatarUrl: DEFAULT_AVATAR,
     unitScopeTier: 'PLATOON',
+    assignedUnitIds: ['C1-B1'],
     assignedUnitId: 'C1-B1',
   },
   {
@@ -306,6 +310,7 @@ export const MOCK_ACCOUNTS: UserAccount[] = [
     phone: '0394497***',
     avatarUrl: DEFAULT_AVATAR,
     unitScopeTier: 'SQUAD',
+    assignedUnitIds: ['C1-B1-A1'],
     assignedUnitId: 'C1-B1-A1',
   },
 ];
@@ -394,7 +399,7 @@ export const MOCK_SOLDIERS: Soldier[] = [
 // DỮ LIỆU TRỐNG & TIỆN ÍCH
 // ══════════════════════════════════════════════════════════════════════
 
-export const TODAY_DATE = new Date().toISOString().slice(0, 10);
+export const TODAY_DATE = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' }).format(new Date());
 
 // Bắt đầu từ trạng thái trống — dữ liệu được nhập vào qua giao diện và lưu vào LocalStorage.
 export const MOCK_DAILY_SCORES: DailyScore[] = [];
@@ -451,3 +456,149 @@ export const QUICK_VIOLATION_PRESETS = [
     points: -5,
   },
 ];
+
+// ══════════════════════════════════════════════════════════════════════
+// TÀI KHOẢN MẪU PHÂN QUYỀN 3 ROLE (MOCK USERS)
+// ══════════════════════════════════════════════════════════════════════
+
+export const mockUsers: UserAccount[] = [
+  {
+    id: 'u1',
+    username: 'admin',
+    role: 'ADMIN',
+    name: 'Nguyễn Văn Quân',
+    roleTitle: 'Trung đoàn trưởng / Quản trị viên',
+    rank: 'Thượng tá',
+    assignedUnitIds: ['e335'],
+    assignedUnitId: 'e335',
+    status: 'ACTIVE',
+    avatarUrl: DEFAULT_AVATAR,
+  },
+  {
+    id: 'u_scorer_c1',
+    username: 'scorer_c1',
+    role: 'SCORER',
+    name: 'Lê Văn Nam',
+    roleTitle: 'Đại đội trưởng C1',
+    rank: 'Đại úy',
+    assignedUnitIds: ['C1', 'C1-B1', 'C1-B2', 'C1-B3'],
+    assignedUnitId: 'C1',
+    status: 'ACTIVE',
+    avatarUrl: DEFAULT_AVATAR,
+  },
+  {
+    id: 'u3',
+    username: 'thang_b1',
+    role: 'SCORER',
+    name: 'Nguyễn Văn Thắng',
+    roleTitle: 'Trung đội trưởng B1',
+    rank: 'Trung úy',
+    assignedUnitIds: ['C1-B1'],
+    assignedUnitId: 'C1-B1',
+    platoonId: 'C1-B1',
+    status: 'ACTIVE',
+    avatarUrl: DEFAULT_AVATAR,
+  },
+  {
+    id: 'u4',
+    username: 'quannhan',
+    role: 'SOLDIER',
+    name: 'Trịnh Quốc Việt',
+    roleTitle: 'Chiến sĩ',
+    rank: 'Binh nhất',
+    soldierId: 's1',
+    assignedUnitIds: ['C1-B1-A1'],
+    assignedUnitId: 'C1-B1-A1',
+    platoonId: 'C1-B1',
+    status: 'ACTIVE',
+    avatarUrl: DEFAULT_AVATAR,
+  },
+  {
+    id: 'u_soldier_a',
+    username: 'soldier_a',
+    role: 'SOLDIER',
+    name: 'Trịnh Quốc Việt',
+    roleTitle: 'Chiến sĩ',
+    rank: 'Binh nhất',
+    soldierId: 's1',
+    assignedUnitIds: ['C1-B1-A1'],
+    assignedUnitId: 'C1-B1-A1',
+    platoonId: 'C1-B1',
+    status: 'ACTIVE',
+    avatarUrl: DEFAULT_AVATAR,
+  },
+  {
+    id: 'u2',
+    username: 'user_demo',
+    role: 'SOLDIER',
+    name: 'Nguyễn Văn Đức',
+    roleTitle: 'Chiến sĩ thi đua',
+    rank: 'Binh nhì',
+    soldierId: 's2',
+    assignedUnitIds: ['C1-B1-A1'],
+    assignedUnitId: 'C1-B1-A1',
+    platoonId: 'C1-B1',
+    status: 'ACTIVE',
+    avatarUrl: DEFAULT_AVATAR,
+  },
+];
+
+export const MOCK_USERS = mockUsers;
+
+// ══════════════════════════════════════════════════════════════════════
+// DỮ LIỆU KHIẾU NẠI THI ĐUA MẪU (MOCK APPEALS)
+// ══════════════════════════════════════════════════════════════════════
+
+export const mockAppeals: EmulationAppeal[] = [
+  {
+    id: 'appeal-1',
+    soldierId: 's1',
+    soldierName: 'Trịnh Quốc Việt',
+    unitId: 'C1-B1-A1',
+    unitName: 'Tiểu đội 1 (Trung đội 1 - Đại đội 1)',
+    date: TODAY_DATE,
+    criterionId: 'c_hygiene',
+    criterionName: 'Nội vụ, vệ sinh & Thể lực',
+    deductionPoints: 5,
+    reason: 'Báo cáo đồng chí chỉ huy, hôm qua tôi đi trực gác ca 3h-5h sáng về muộn nên chăn màn xếp sau giờ báo thức 10 phút, không phải cố ý vi phạm nội vụ.',
+    status: 'PENDING',
+    createdAt: '2026-10-01T08:30:00.000Z',
+  },
+  {
+    id: 'appeal-2',
+    soldierId: 's2',
+    soldierName: 'Nguyễn Văn Đức',
+    unitId: 'C1-B1-A1',
+    unitName: 'Tiểu đội 1 (Trung đội 1 - Đại đội 1)',
+    date: '2026-09-30',
+    criterionId: 'c_task',
+    criterionName: 'Huấn luyện & Thực hiện nhiệm vụ',
+    deductionPoints: 10,
+    reason: 'Báo cáo chỉ huy, nội dung kiểm tra bắn súng tôi đạt điểm Giỏi nhưng bị ghi nhầm mã số sang đồng chí khác dẫn đến bị trừ điểm nhiệm vụ.',
+    status: 'APPROVED',
+    createdAt: '2026-09-30T17:15:00.000Z',
+    resolvedAt: '2026-09-30T19:30:00.000Z',
+    resolvedBy: 'Nguyễn Văn Thắng',
+    reply: 'Đã đối soát lại biên bản kiểm tra bắn súng của Đại đội 1, xác nhận đồng chí Đức đạt Giỏi. Đồng ý hoàn lại 10 điểm thi đua.',
+  },
+  {
+    id: 'appeal-3',
+    soldierId: 's3',
+    soldierName: 'Lê Văn Cường',
+    unitId: 'C1-B1-A1',
+    unitName: 'Tiểu đội 1 (Trung đội 1 - Đại đội 1)',
+    date: '2026-09-29',
+    criterionId: 'c_bearing',
+    criterionName: 'Lễ tiết tác phong & Chấp hành kỷ luật',
+    deductionPoints: 5,
+    reason: 'Báo cáo chỉ huy, hôm qua tôi chào chỉ huy khi đang mang vác nặng nên chỉ đứng nghiêm chào bằng mắt, xin miễn trừ điểm.',
+    status: 'REJECTED',
+    createdAt: '2026-09-29T18:00:00.000Z',
+    resolvedAt: '2026-09-29T20:00:00.000Z',
+    resolvedBy: 'Lê Văn Nam',
+    reply: 'Theo điều lệnh quản lý bộ đội, khi mang vác vật nặng quân nhân vẫn phải xưng hô chào hỏi đúng quy định. Nhắc nhở đồng chí rút kinh nghiệm, giữ nguyên điểm trừ.',
+  },
+];
+
+export const MOCK_APPEALS = mockAppeals;
+

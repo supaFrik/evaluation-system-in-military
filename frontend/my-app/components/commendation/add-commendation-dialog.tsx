@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { Soldier, Platoon, CommendationItem, DisciplineDocument } from '@/lib/types';
 import { X, FileText, ChevronDown, ChevronRight } from 'lucide-react';
-import { ALL_UNITS } from '@/lib/mock-data';
+import { ALL_UNITS, TODAY_DATE } from '@/lib/mock-data';
 
 interface AddCommendationDialogProps {
   isOpen: boolean;
@@ -43,8 +43,8 @@ export function AddCommendationDialog({
     documentType: 'Khiển trách',
     documentNumber: '',
     issuedBy: authorName,
-    issuedDate: new Date().toISOString().slice(0, 10),
-    effectiveDate: new Date().toISOString().slice(0, 10),
+    issuedDate: TODAY_DATE,
+    effectiveDate: TODAY_DATE,
     reason: '',
     duration: '',
   });
@@ -98,7 +98,7 @@ export function AddCommendationDialog({
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 p-0 sm:p-4 backdrop-blur-xs animate-in fade-in">
-      <div className="w-full max-w-xl rounded-t-xl sm:rounded-[3px] border border-zinc-300 bg-white p-4 sm:p-6 shadow-lg max-h-[92dvh] overflow-y-auto animate-in slide-in-from-bottom sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-200">
+      <div className="w-full max-w-xl rounded-t-[4px] sm:rounded-[3px] border border-zinc-300 bg-white p-4 sm:p-6 shadow-md max-h-[92dvh] overflow-y-auto animate-in slide-in-from-bottom sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-200">
         {/* Mobile pull handle */}
         <div className="mx-auto -mt-1 mb-2 h-1.5 w-12 rounded-full bg-zinc-300 sm:hidden" />
         {/* Header */}

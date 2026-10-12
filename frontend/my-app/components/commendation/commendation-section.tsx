@@ -2,7 +2,15 @@
 
 import React, { useState } from 'react';
 import { CommendationItem } from '@/lib/types';
-import { Plus, Award, AlertTriangle, Calendar, Pencil, Trash2, X, Search } from 'lucide-react';
+import { Plus, Award, AlertTriangle, Calendar, Pencil, Trash2, X, Search, MoreHorizontal } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { notify } from '@/lib/notify';
 
 interface CommendationSectionProps {
@@ -58,8 +66,8 @@ export function CommendationSection({
 
   return (
     <div className="w-full max-w-5xl py-2 space-y-6">
-      {/* 1. Thanh công cụ điều hành thi đua: Tìm kiếm + Bộ lọc + Thêm mới */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-zinc-50 border border-zinc-200 p-2.5 rounded-[4px] shadow-2xs">
+      {/* 1. Header & Quick Filter Bar */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-zinc-100">
         <div className="flex flex-wrap items-center gap-2 flex-1">
           {/* Ô tìm kiếm */}
           <div className="relative min-w-[200px] flex-1 sm:max-w-xs">
@@ -69,7 +77,7 @@ export function CommendationSection({
               placeholder="Tìm theo tên quân nhân, nội dung..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-8 pr-2.5 py-1.5 text-xs bg-white border border-zinc-300 rounded-[3px] focus:outline-none focus:border-[#b91c1c] text-zinc-800 placeholder:text-zinc-400"
+              className="w-full pl-8 pr-2.5 py-1.5 text-xs bg-zinc-50 border border-zinc-200 rounded-[3px] focus:outline-none focus:border-[#b91c1c] text-zinc-800 placeholder:text-zinc-400"
             />
           </div>
 
@@ -81,7 +89,7 @@ export function CommendationSection({
               className={`px-2.5 py-1 text-xs font-semibold rounded-[3px] border transition-colors btn-tactile cursor-pointer shrink-0 ${
                 typeFilter === 'ALL'
                   ? 'bg-zinc-800 text-white border-zinc-800'
-                  : 'bg-white text-zinc-600 border-zinc-200 hover:bg-zinc-100'
+                  : 'bg-white text-zinc-600 border-zinc-200 hover:bg-zinc-50'
               }`}
             >
               Tất cả ({commendations.length})
@@ -92,7 +100,7 @@ export function CommendationSection({
               className={`inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-[3px] border transition-colors btn-tactile cursor-pointer shrink-0 ${
                 typeFilter === 'COMMENDATION'
                   ? 'bg-emerald-700 text-white border-emerald-700'
-                  : 'bg-white text-emerald-800 border-emerald-200 hover:bg-emerald-50'
+                  : 'bg-white text-emerald-800 border-zinc-200 hover:bg-emerald-50/50'
               }`}
             >
               <Award className="w-3 h-3" />
@@ -104,7 +112,7 @@ export function CommendationSection({
               className={`inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-[3px] border transition-colors btn-tactile cursor-pointer shrink-0 ${
                 typeFilter === 'REMINDER'
                   ? 'bg-[#991b1b] text-white border-[#991b1b]'
-                  : 'bg-white text-[#991b1b] border-red-200 hover:bg-red-50'
+                  : 'bg-white text-[#991b1b] border-zinc-200 hover:bg-red-50/50'
               }`}
             >
               <AlertTriangle className="w-3 h-3" />
@@ -117,7 +125,7 @@ export function CommendationSection({
           <button
             type="button"
             onClick={onOpenAddModal}
-            className="inline-flex items-center justify-center gap-1.5 rounded-[3px] bg-[#b91c1c] px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-red-800 transition-colors shadow-xs btn-tactile cursor-pointer shrink-0"
+            className="inline-flex items-center justify-center gap-1.5 rounded-[3px] bg-[#b91c1c] px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-red-800 transition-colors shadow-2xs btn-tactile cursor-pointer shrink-0"
           >
             <Plus className="h-3.5 w-3.5" />
             <span>Ghi nhận mới</span>
@@ -127,63 +135,78 @@ export function CommendationSection({
 
       {/* 2. Section 1: Biểu dương cá nhân / tập thể tiêu biểu */}
       {typeFilter !== 'REMINDER' && (
-        <div className="space-y-3">
-          <div className="flex items-center gap-2 border-b border-zinc-200 pb-2">
+        <div className="space-y-2">
+          <div className="flex items-center gap-2 pb-2">
             <Award className="h-4 w-4 text-emerald-700" />
-            <h3 className="text-sm font-bold text-zinc-900 uppercase tracking-wider">
+            <h3 className="text-xs font-bold text-zinc-900 uppercase tracking-wider">
               Cá nhân / Tập thể tiêu biểu (Biểu dương)
             </h3>
-            <span className="rounded-[3px] border border-emerald-200 bg-emerald-50 px-1.5 py-0.2 font-mono text-xs font-semibold text-emerald-800">
+            <span className="rounded-[3px] bg-emerald-50 px-1.5 py-0.2 font-mono text-[11px] font-semibold text-emerald-800">
               {commendationList.length}
             </span>
           </div>
 
-          <div className="divide-y divide-zinc-200 border-b border-zinc-200">
+          <div className="divide-y divide-zinc-100 border-y border-zinc-100">
             {commendationList.length === 0 ? (
-              <p className="py-4 text-xs text-zinc-500 italic">
+              <p className="py-4 text-xs text-zinc-400 italic">
                 {searchQuery ? 'Không tìm thấy ghi nhận biểu dương phù hợp với từ khóa.' : 'Chưa có ghi nhận biểu dương nào.'}
               </p>
             ) : (
               commendationList.map((item) => (
-                <div key={item.id} className="py-3.5 space-y-1.5 group">
+                <div key={item.id} className="py-3 space-y-1 group">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div className="flex items-center gap-2">
-                      <span className="font-semibold text-zinc-900 text-sm">
+                      <span className="font-semibold text-zinc-900 text-xs">
                         {item.targetName}
                       </span>
-                      <span className="inline-block rounded-[3px] border border-emerald-300 bg-emerald-50 px-1.5 py-0.5 text-xs font-bold text-emerald-800">
+                      <span className="inline-block rounded-[3px] bg-emerald-50 px-1.5 py-0.5 text-[10px] font-bold text-emerald-700">
                         ★ Biểu dương
                       </span>
                     </div>
-                    <div className="flex items-center gap-3 text-xs text-zinc-500">
-                      <span className="flex items-center gap-1 font-mono">
+                    <div className="flex items-center gap-3 text-xs text-zinc-400">
+                      <span className="flex items-center gap-1 font-mono text-[11px]">
                         <Calendar className="h-3 w-3 text-zinc-400" />
                         {item.date}
                       </span>
-                      <span>{item.createdBy}</span>
+                      <span className="text-[11px]">{item.createdBy}</span>
                       {canManage && (
-                        <div className="flex items-center gap-1.5 ml-2 border-l border-zinc-200 pl-2">
-                          <button
-                            type="button"
-                            onClick={() => setEditingItem(item)}
-                            className="p-1 text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 rounded transition-colors btn-tactile cursor-pointer"
-                            title="Chỉnh sửa ghi nhận"
-                          >
-                            <Pencil className="w-3.5 h-3.5" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleDelete(item)}
-                            className="p-1 text-zinc-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors btn-tactile cursor-pointer"
-                            title="Xóa ghi nhận"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger
+                            render={
+                              <button
+                                type="button"
+                                className="h-6 w-6 text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 rounded-[3px] p-0 flex items-center justify-center btn-tactile cursor-pointer"
+                                title="Thao tác"
+                              >
+                                <MoreHorizontal className="h-3.5 w-3.5" />
+                              </button>
+                            }
+                          />
+                          <DropdownMenuContent align="end" className="w-36 bg-white border border-zinc-200 shadow-md rounded-[3px] p-1 text-xs">
+                            <DropdownMenuGroup>
+                              <DropdownMenuItem
+                                onClick={() => setEditingItem(item)}
+                                className="cursor-pointer gap-2 py-1.5 text-xs text-zinc-700 hover:bg-zinc-100"
+                              >
+                                <Pencil className="h-3.5 w-3.5 text-zinc-400" />
+                                <span>Chỉnh sửa</span>
+                              </DropdownMenuItem>
+                            </DropdownMenuGroup>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              variant="destructive"
+                              onClick={() => handleDelete(item)}
+                              className="cursor-pointer gap-2 py-1.5 text-xs text-red-600 hover:bg-red-50"
+                            >
+                              <Trash2 className="h-3.5 w-3.5 text-red-500" />
+                              <span>Xóa</span>
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       )}
                     </div>
                   </div>
-                  <p className="text-xs text-zinc-700 leading-relaxed pl-0.5">
+                  <p className="text-xs text-zinc-600 leading-relaxed">
                     {item.content}
                   </p>
                 </div>
@@ -195,63 +218,78 @@ export function CommendationSection({
 
       {/* 3. Section 2: Vấn đề cần khắc phục, nhắc nhở */}
       {typeFilter !== 'COMMENDATION' && (
-        <div className="space-y-3 pt-2">
-          <div className="flex items-center gap-2 border-b border-zinc-200 pb-2">
-            <AlertTriangle className="h-4 w-4 text-amber-700" />
-            <h3 className="text-sm font-bold text-zinc-900 uppercase tracking-wider">
+        <div className="space-y-2 pt-2">
+          <div className="flex items-center gap-2 pb-2">
+            <AlertTriangle className="h-4 w-4 text-amber-600" />
+            <h3 className="text-xs font-bold text-zinc-900 uppercase tracking-wider">
               Vấn đề cần khắc phục (Nhắc nhở)
             </h3>
-            <span className="rounded-[3px] border border-red-200 bg-red-50 px-1.5 py-0.2 font-mono text-xs font-semibold text-[#991b1b]">
+            <span className="rounded-[3px] bg-red-50 px-1.5 py-0.2 font-mono text-[11px] font-semibold text-[#991b1b]">
               {reminderList.length}
             </span>
           </div>
 
-          <div className="divide-y divide-zinc-200 border-b border-zinc-200">
+          <div className="divide-y divide-zinc-100 border-y border-zinc-100">
             {reminderList.length === 0 ? (
-              <p className="py-4 text-xs text-zinc-500 italic">
+              <p className="py-4 text-xs text-zinc-400 italic">
                 {searchQuery ? 'Không tìm thấy ghi nhận nhắc nhở phù hợp với từ khóa.' : 'Chưa có ghi nhận nhắc nhở nào.'}
               </p>
             ) : (
               reminderList.map((item) => (
-                <div key={item.id} className="py-3.5 space-y-1.5 group">
+                <div key={item.id} className="py-3 space-y-1 group">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div className="flex items-center gap-2">
-                      <span className="font-semibold text-zinc-900 text-sm">
+                      <span className="font-semibold text-zinc-900 text-xs">
                         {item.targetName}
                       </span>
-                      <span className="inline-block rounded-[3px] border border-red-300 bg-red-50 px-1.5 py-0.5 text-xs font-bold text-[#991b1b]">
+                      <span className="inline-block rounded-[3px] bg-red-50 px-1.5 py-0.5 text-[10px] font-bold text-[#991b1b]">
                         ⚠ Nhắc nhở
                       </span>
                     </div>
-                    <div className="flex items-center gap-3 text-xs text-zinc-500">
-                      <span className="flex items-center gap-1 font-mono">
+                    <div className="flex items-center gap-3 text-xs text-zinc-400">
+                      <span className="flex items-center gap-1 font-mono text-[11px]">
                         <Calendar className="h-3 w-3 text-zinc-400" />
                         {item.date}
                       </span>
-                      <span>{item.createdBy}</span>
+                      <span className="text-[11px]">{item.createdBy}</span>
                       {canManage && (
-                        <div className="flex items-center gap-1.5 ml-2 border-l border-zinc-200 pl-2">
-                          <button
-                            type="button"
-                            onClick={() => setEditingItem(item)}
-                            className="p-1 text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 rounded transition-colors btn-tactile cursor-pointer"
-                            title="Chỉnh sửa ghi nhận"
-                          >
-                            <Pencil className="w-3.5 h-3.5" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleDelete(item)}
-                            className="p-1 text-zinc-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors btn-tactile cursor-pointer"
-                            title="Xóa ghi nhận"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger
+                            render={
+                              <button
+                                type="button"
+                                className="h-6 w-6 text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 rounded-[3px] p-0 flex items-center justify-center btn-tactile cursor-pointer"
+                                title="Thao tác"
+                              >
+                                <MoreHorizontal className="h-3.5 w-3.5" />
+                              </button>
+                            }
+                          />
+                          <DropdownMenuContent align="end" className="w-36 bg-white border border-zinc-200 shadow-md rounded-[3px] p-1 text-xs">
+                            <DropdownMenuGroup>
+                              <DropdownMenuItem
+                                onClick={() => setEditingItem(item)}
+                                className="cursor-pointer gap-2 py-1.5 text-xs text-zinc-700 hover:bg-zinc-100"
+                              >
+                                <Pencil className="h-3.5 w-3.5 text-zinc-400" />
+                                <span>Chỉnh sửa</span>
+                              </DropdownMenuItem>
+                            </DropdownMenuGroup>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              variant="destructive"
+                              onClick={() => handleDelete(item)}
+                              className="cursor-pointer gap-2 py-1.5 text-xs text-red-600 hover:bg-red-50"
+                            >
+                              <Trash2 className="h-3.5 w-3.5 text-red-500" />
+                              <span>Xóa</span>
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       )}
                     </div>
                   </div>
-                  <p className="text-xs text-zinc-700 leading-relaxed pl-0.5">
+                  <p className="text-xs text-zinc-600 leading-relaxed">
                     {item.content}
                   </p>
                 </div>
@@ -264,7 +302,7 @@ export function CommendationSection({
       {/* 4. Edit Commendation Modal */}
       {editingItem && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 animate-in fade-in duration-150">
-          <div className="bg-white rounded-[4px] border border-zinc-300 shadow-xl max-w-md w-full overflow-hidden">
+          <div className="bg-white rounded-[3px] border border-zinc-300 shadow-md max-w-md w-full overflow-hidden">
             <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-200 bg-zinc-50">
               <h3 className="font-semibold text-zinc-900 text-sm flex items-center gap-2">
                 <Pencil className="w-4 h-4 text-[#b91c1c]" />

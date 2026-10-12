@@ -1,127 +1,111 @@
-# Project: Full End-to-End Integration (Spring Boot 3.3.4 & Next.js 16)
+# Project: 3-Role Architecture & Minimalist Role-Tailored System
 
 ## Architecture
-The system integrates a Java 21 Spring Boot 3.3.4 Modular Monolith backend (`http://localhost:8080/api/v1`) with a Next.js 16 (React 19) frontend (`http://localhost:3005`).
-
-```
-Frontend (Next.js 16 / React 19)
-├── app/
-│   ├── layout.tsx                                # Root layout with Toaster
-│   ├── page.tsx                                  # Main Dashboard connecting 27 UI components
-│   └── login/client.tsx                          # Real Login with Bearer Token & Refresh Token
-├── components/                                   # 27 UI components consuming useEmulationStore
-├── lib/
-│   ├── api/
-│   │   ├── client.ts                             # Native Fetch Client (zero deps, Bearer, 401 refresh & retry)
-│   │   ├── auth.service.ts                       # Login, refresh-token, me
-│   │   ├── unit.service.ts                       # Units list, hierarchy tree, remarks
-│   │   ├── soldier.service.ts                    # Soldier CRUD & paginated query
-│   │   ├── criteria.service.ts                   # Emulation criteria CRUD & toggle
-│   │   ├── score.service.ts                      # Daily scores GET/POST, lock/unlock (21:00 rule)
-│   │   ├── commendation.service.ts               # Commendations & discipline CRUD
-│   │   └── report.service.ts                     # Unit aggregate emulation matrix report
-│   ├── store.ts                                  # useEmulationStore (Strict Real API, 21 signatures preserved)
-│   └── notify.ts                                 # Toast notification utility
-└── .env.local                                    # NEXT_PUBLIC_API_BASE_URL=http://localhost:8080/api/v1
-
-                                  ▲
-                         HTTP / REST API (JSON)
-                      ApiResponse<T> Envelope
-                                  ▼
-
-Backend (Spring Boot 3.3.4 / Java 21 - Modular Monolith)
-├── common/
-│   ├── dto/ApiResponse.java                      # Standard envelope {success, code, message, data, errors, timestamp}
-│   ├── enums/                                    # UnitTier, UserRole
-│   └── exception/GlobalExceptionHandler.java     # AppException (including 423 Locked), validation errors
-├── infrastructure/
-│   ├── config/CorsConfig.java                    # CORS for port 3005 with credentials
-│   ├── security/SecurityConfig.java              # Stateless JWT security, /api/v1 context-path
-│   └── seeder/DataSeeder.java                    # Initial seed data for units, soldiers, criteria, users, scores
-└── modules/
-    ├── auth/                                     # AuthController, AuthService, UserAccount, JwtTokenProvider
-    ├── unit/                                     # UnitController, UnitService, MilitaryUnit, UnitRemark
-    ├── soldier/                                  # SoldierController, SoldierService, Soldier, SoldierRepository
-    ├── emulation/                                # CriterionController, DailyScoreController, LockController,
-    │                                             # CommendationController, EmulationService, DailyLock, CommendationItem
-    └── report/                                   # ReportController, ReportService, UnitAggregateResponse
-```
+Hệ thống Quản lý và Theo dõi Thi đua Quân nhân (Next.js 16 + TypeScript + Tailwind CSS, Spring Boot backend / LocalStorage fallback) được tái cấu trúc theo mô hình 3 Role độc lập:
+1. **SUPER_ADMIN / ADMIN (Quản trị viên tối cao)**:
+   - Độc quyền truy cập Cây đơn vị (`tab=units`), Quy chế chấm điểm (`tab=criteria`), Quản trị quân nhân (`tab=soldiers`), Báo cáo (`tab=reports`).
+   - Phân quyền cán bộ chấm điểm trực tiếp trên từng thẻ đơn vị quân sự.
+   - Mở/khóa sổ điểm, chốt số và phê duyệt toàn đơn vị.
+2. **SCORER (Cán bộ phụ trách phân đội)**:
+   - Tối giản chỉ 3 chức năng: Nhập điểm thi đua (`tab=daily_scoring`), Bảng thi đua phân đội (`tab=platoon_summary`), Xử lý khiếu nại (`tab=appeals`).
+   - Phạm vi dữ liệu giới hạn nghiêm ngặt trong danh sách phân đội được cấp quyền (`currentUser.assignedUnitIds`).
+   - Tuyệt đối không truy cập được Cây đơn vị và Quy chế chấm điểm (bị ẩn khỏi Sidebar và chặn bởi Router Guard).
+3. **SOLDIER (Quân nhân / Chiến sĩ)**:
+   - Tối giản chỉ 2 chức năng View-Only: Kết quả thi đua của tôi (`tab=my_emulation`), Hòm thư khiếu nại (`tab=appeals`).
+   - Chỉ xem dữ liệu điểm số của chính bản thân, không thể chỉnh sửa điểm.
+   - Gửi khiếu nại điểm số kèm lý do và nhận phản hồi trực tiếp từ cán bộ phụ trách.
 
 ## Feature Inventory
 | # | Feature | Description | Milestone | Source |
 |---|---------|-------------|-----------|--------|
-| 1 | Standard API Envelope & Error Handling | `ApiResponse<T>` & `GlobalExceptionHandler` with HTTP 423 support | M1 | `docs/backend-integration-spec.md §3` |
-| 2 | Unit REST APIs & Remarks | `GET /units`, `GET /units/tree`, `POST /units/{unitId}/remarks` + `UnitRemark` entity | M1 | `ORIGINAL_REQUEST.md §R1` |
-| 3 | Soldier CRUD & Filter APIs | `GET /soldiers` (unitId, tier, page, size), `GET /soldiers/{id}`, `POST`, `PUT`, `DELETE` | M1 | `ORIGINAL_REQUEST.md §R1` |
-| 4 | Emulation Criteria APIs | `GET /criteria`, `POST`, `PUT`, `PATCH /criteria/{id}/toggle`, `DELETE` | M1 | `ORIGINAL_REQUEST.md §R1` |
-| 5 | Daily Scores & 21:00 Lock Rule | `GET /scores/daily`, `POST /scores/daily` (returns 423 if locked, past, or after 21:00) | M1 | `ORIGINAL_REQUEST.md §R1` |
-| 6 | Score Lock & Unlock APIs | `POST /scores/lock`, `POST /scores/unlock` with audit history JSON in `DailyLock` | M1 | `ORIGINAL_REQUEST.md §R1` |
-| 7 | Commendation & Discipline APIs | `GET /commendations`, `POST /commendations`, `DELETE /commendations/{id}` | M1 | `ORIGINAL_REQUEST.md §R1` |
-| 8 | Unit Aggregate Report API | `GET /reports/unit-aggregate` with child units ranking & remarks | M1 | `ORIGINAL_REQUEST.md §R1` |
-| 9 | Data Seeder Sample Records | Seed initial daily scores, locks, and commendations for seamless frontend integration | M1 | `ORIGINAL_REQUEST.md §Acceptance` |
-| 10 | Backend Integration Test Suite | Comprehensive tests for new controllers, 100% pass with `mvnw test` on Java 21 | M1 | `ORIGINAL_REQUEST.md §R4` |
-| 11 | Frontend Native Fetch API Client | `lib/api/client.ts` with zero deps, base URL, Bearer auth, 401 refresh token & retry | M2 | `ORIGINAL_REQUEST.md §R2` |
-| 12 | Frontend API Service Modules | 7 service modules in `lib/api/` (`auth`, `unit`, `soldier`, `criteria`, `score`, `commendation`, `report`) | M2 | `ORIGINAL_REQUEST.md §R2` |
-| 13 | Environment Configuration | `frontend/my-app/.env.local` configuring `NEXT_PUBLIC_API_BASE_URL` | M2 | `ORIGINAL_REQUEST.md §R2` |
-| 14 | Real Authentication UI Flow | Update `app/login/client.tsx` & `login-signup.tsx` with real login, token storage & error toast | M2 | `ORIGINAL_REQUEST.md §R3` |
-| 15 | Strict Real API Store Adapter | Refactor `lib/store.ts` to call async API services, eliminate localStorage mock fallback | M3 | `ORIGINAL_REQUEST.md §R3` |
-| 16 | Preserve 21 Store Signatures | Maintain exact signatures for 21 actions so 27 UI components remain 100% intact | M3 | `ORIGINAL_REQUEST.md §R3` |
-| 17 | Frontend Build Verification | `pnpm run build` and `npx tsc --noEmit` pass with zero type or lint errors | M3 | `ORIGINAL_REQUEST.md §R4` |
-| 18 | Dual-End Automated Verification | Run backend tests and frontend production build | M4 | `ORIGINAL_REQUEST.md §Acceptance` |
-| 19 | Adversarial Quality Verification | Reviewers & Challengers verify edge cases, lock rules, and token refresh | M4 | System Standard |
-| 20 | Forensic Integrity Audit | Auditor verification for authentic implementation, zero cheating, zero mock fallbacks | M4 | Hard Constraint |
+| 1 | 3-Role Enum & Types Standardization | Chuẩn hóa `UserRole` ('ADMIN', 'SCORER', 'SOLDIER'), hỗ trợ tương thích ngược `COMMANDER` -> `ADMIN`, `USER` -> `SOLDIER`. | M1 | Survey |
+| 2 | `assignedUnitIds: string[]` in UserAccount | Thêm mảng `assignedUnitIds` vào `UserAccount`, mock accounts (Admin, Scorer C1, Scorer B1, Soldier A). | M1 | Survey |
+| 3 | Scorer Assignment API & Store Methods | Cung cấp `assignUnitsToUser`, `assignScorersToUnit` trong store và API services. | M1 | Survey |
+| 4 | `EmulationAppeal` Data Model & Storage | Định nghĩa model khiếu nại, lưu trữ state `appeals` trong store/local storage & API methods. | M1 | Survey |
+| 5 | Remove Quick-Scoring Buttons from Unit Tree | Gỡ bỏ nút "Nhập điểm" và "Xem thi đua" trên cả Tree View và Table View trong `unit-management.tsx`. | M2 | Survey |
+| 6 | Read-Only Soldier Count Badge | Chuyển badge "X đồng chí" từ nút click điều hướng thành `<div>` thông tin tĩnh thuần túy. | M2 | Survey |
+| 7 | "Phân quyền chấm điểm" Button & Scorer Tags | Thêm icon `Key` trên thẻ đơn vị và tag hiển thị danh sách cán bộ chấm điểm phụ trách. | M2 | Survey |
+| 8 | Assign Scorer Modal | Modal cho phép Admin tìm kiếm, chọn nhiều cán bộ từ danh sách tài khoản và lưu phân quyền cho đơn vị. | M2 | Survey |
+| 9 | Role-Tailored Sidebar Navigation | Hiển thị menu thích ứng: Admin (đầy đủ), Scorer (3 mục), Soldier (2 mục). Ẩn hoàn toàn tab `units` và `criteria` với non-Admin. | M3 | Survey |
+| 10 | Strict Router Guard in `app/page.tsx` | Kiểm tra URL tab với `ROLE_ALLOWED_TABS`. Chặn và chuyển hướng ngay lập tức nếu non-Admin truy cập `units` hoặc `criteria`. | M3 | Survey |
+| 11 | Scorer Unit Scope Restriction in Daily Scoring | Tự động chọn đơn vị trong `assignedUnitIds`, lọc danh sách quân nhân chỉ thuộc đơn vị được phân công, không cho chấm vượt quyền. | M3 | Survey |
+| 12 | Soldier Personal Emulation View-Only Sheet | Giao diện hiển thị sổ điểm thi đua cá nhân, điểm hôm nay, lịch sử cộng/trừ điểm và biểu dương/nhắc nhở. | M4 | Survey |
+| 13 | Soldier Appeal Submission Form | Form khiếu nại cho quân nhân: chọn ngày, tiêu chí, nhập lý do giải trình. | M4 | Survey |
+| 14 | Scorer & Admin Appeals Resolution Console | Giao diện xem danh sách khiếu nại theo đơn vị phụ trách, modal phê duyệt/từ chối kèm ý kiến phản hồi (`reply`). | M4 | Survey |
+| 15 | Playwright E2E 3-Role Test Suite | Bộ test E2E kiểm tra toàn diện 3 vai trò: quyền hiển thị sidebar, router guards, phân quyền trên cây đơn vị, luồng khiếu nại. | M5 | Survey |
+| 16 | Production Build Verification | Xác minh `npm run build` hoàn thành 100% với 0 lỗi TypeScript và Lint. | M5 | Survey |
 
 ## Milestones
 | # | Name | Scope | Dependencies | Status |
 |---|------|-------|-------------|--------|
-| M1 | Backend Domain REST Controllers & Services | Implement `modules/unit`, `modules/soldier`, `modules/emulation`, `modules/report` controllers, services, DTOs, `UnitRemark` entity, sample seeder, and tests | None | IN_PROGRESS |
-| M2 | Frontend Native Fetch API Client & Real Auth | Implement `lib/api/client.ts`, 7 services in `lib/api/`, `.env.local`, and real login in `app/login/client.tsx` | M1 interface contracts | PLANNED |
-| M3 | Frontend Store Adapter & Strict Real API | Refactor `lib/store.ts` to async Real API calls, preserve 21 signatures, error toasts | M2 | PLANNED |
-| M4 | End-to-End Verification & Forensic Integrity Audit | Full test pass (`mvnw test` + `pnpm run build`), Adversarial challenge, and Forensic Audit | M1, M2, M3 | PLANNED |
+| 1 | M1: RBAC Data Models & Appeals Store | Cập nhật `types.ts`, `store.ts`, `mock-data.ts`, `auth.service.ts`, `user.service.ts`, mock accounts cho 3 role, `EmulationAppeal` CRUD | None | DONE |
+| 2 | M2: Unit Tree Minimalist UI & Assign Scorer Modal | Gỡ bỏ nút "Nhập điểm"/"Xem thi đua", làm tĩnh badge quân số, thêm nút icon `Key` & tag cán bộ chấm điểm, xây dựng Modal phân quyền | M1 | PLANNED |
+| 3 | M3: Role-Tailored Sidebar & Router Guard | Cập nhật `sidebar.tsx`, `header.tsx`, Router Guard trong `app/page.tsx`, scoping đơn vị trong `daily-scoring-sheet.tsx` | M1, M2 | PLANNED |
+| 4 | M4: Soldier View-Only Scoring & Appeals Flow | Xây dựng `SoldierEmulationView`, form gửi khiếu nại cho Soldier, và console xử lý khiếu nại cho Scorer/Admin | M1, M3 | PLANNED |
+| 5 | M5: E2E Verification & Production Build | Viết kịch bản Playwright E2E 3 role (`e2e/role-based-ux.spec.ts`), cập nhật các test cũ bị ảnh hưởng, xác minh `npm run build` | M1, M2, M3, M4 | PLANNED |
 
 ## Interface Contracts
-### API Envelope & HTTP Codes
-- **Base URL:** `http://localhost:8080/api/v1`
-- **Envelope:**
-  ```json
-  {
-    "success": true,
-    "code": 200,
-    "message": "Success message",
-    "data": { ... },
-    "errors": null,
-    "timestamp": 1727107200000
-  }
-  ```
-- **Auth:** `Authorization: Bearer <accessToken>`
-- **Refresh:** `POST /api/v1/auth/refresh-token` with `{ "refreshToken": "..." }`
-- **423 Locked:**
-  ```json
-  {
-    "success": false,
-    "code": 423,
-    "message": "Ngày đánh giá đã bị khóa sổ",
-    "data": null,
-    "errors": null,
-    "timestamp": ...
-  }
-  ```
+### UserAccount & Roles
+```typescript
+export type UserRole = 'ADMIN' | 'SCORER' | 'SOLDIER';
 
-### Frontend ↔ Backend Service Mapping
-| Frontend Service | Backend Controller Endpoint | Methods |
-|---|---|---|
-| `authService` | `/api/v1/auth/login`, `/refresh-token`, `/me` | POST, GET |
-| `unitService` | `/api/v1/units`, `/api/v1/units/tree`, `/api/v1/units/{unitId}/remarks` | GET, POST |
-| `soldierService` | `/api/v1/soldiers`, `/api/v1/soldiers/{id}` | GET, POST, PUT, DELETE |
-| `criteriaService` | `/api/v1/criteria`, `/api/v1/criteria/{id}`, `/api/v1/criteria/{id}/toggle` | GET, POST, PUT, PATCH, DELETE |
-| `scoreService` | `/api/v1/scores/daily`, `/api/v1/scores/lock`, `/api/v1/scores/unlock` | GET, POST |
-| `commendationService` | `/api/v1/commendations`, `/api/v1/commendations/{id}` | GET, POST, DELETE |
-| `reportService` | `/api/v1/reports/unit-aggregate` | GET |
+export interface UserAccount {
+  id: string;
+  username: string;
+  name: string;
+  rank?: string;
+  role: UserRole;
+  roleTitle?: string;
+  soldierId?: string;
+  platoonId?: string;
+  phone?: string;
+  email?: string;
+  status?: string;
+  avatarUrl?: string;
+  unitScopeTier?: UnitTier;
+  assignedUnitIds: string[]; // Các đơn vị được gán quyền chấm điểm
+  assignedUnitId?: string;   // Fallback tương thích ngược
+}
+```
+
+### EmulationAppeal
+```typescript
+export type AppealStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
+
+export interface EmulationAppeal {
+  id: string;
+  soldierId: string;
+  soldierName: string;
+  unitId: string;
+  unitName: string;
+  date: string;              // YYYY-MM-DD
+  criterionId?: string;
+  criterionName?: string;
+  deductionPoints?: number;
+  reason: string;
+  status: AppealStatus;      // PENDING, APPROVED, REJECTED
+  createdAt: string;
+  resolvedAt?: string;
+  resolvedBy?: string;
+  reply?: string;
+}
+```
+
+### Scorer Assignment API / Store Contract
+- `assignUnitsToUser(userId: string, unitIds: string[]): Promise<UserAccount>`
+- `assignScorersToUnit(unitId: string, scorerUserIds: string[]): Promise<void>`
+- `createAppeal(appeal: Omit<EmulationAppeal, 'id' | 'status' | 'createdAt'>): Promise<EmulationAppeal>`
+- `resolveAppeal(appealId: string, status: 'APPROVED' | 'REJECTED', reply: string): Promise<EmulationAppeal>`
 
 ## Code Layout
-- Backend Source: `backend/src/main/java/com/trungdoi/danhgia/`
-- Backend Tests: `backend/src/test/java/com/trungdoi/danhgia/`
-- Frontend Source: `frontend/my-app/`
-- Frontend API Client & Services: `frontend/my-app/lib/api/`
-- Frontend Store: `frontend/my-app/lib/store.ts`
-- Frontend Login: `frontend/my-app/app/login/client.tsx`
+- `frontend/my-app/lib/types.ts`: RBAC types, `UserAccount`, `EmulationAppeal`.
+- `frontend/my-app/lib/store.ts`: Zustand/React state store, appeals CRUD, assigned units sync.
+- `frontend/my-app/lib/mock-data.ts`: Mock accounts for ADMIN, SCORER, SOLDIER, default appeals.
+- `frontend/my-app/components/unit/unit-management.tsx`: Cây đơn vị tối giản, nút Key phân quyền, modal Assign Scorer.
+- `frontend/my-app/components/layout/sidebar.tsx`: Menu thích ứng 3 role.
+- `frontend/my-app/components/layout/header.tsx`: Header role display & filtered shortcuts.
+- `frontend/my-app/app/page.tsx`: Router guard whitelist & tab routing.
+- `frontend/my-app/components/scoring/daily-scoring-sheet.tsx`: Scorer assigned units auto-select & filtering.
+- `frontend/my-app/components/soldier/soldier-emulation-view.tsx`: Giao diện sổ điểm cá nhân View-Only.
+- `frontend/my-app/components/appeals/`: Module quản lý và gửi khiếu nại điểm thi đua.
+- `frontend/my-app/e2e/role-based-ux.spec.ts`: Playwright test suite cho 3 role.

@@ -249,8 +249,8 @@ export function CascadingUnitSelector({
           className="bg-zinc-50 border-zinc-200 flex items-center gap-1.5 px-2 py-1 text-xs min-w-0 max-w-[calc(100%-36px)] sm:max-w-none"
         >
           <Shield className="w-3 h-3 text-zinc-500 shrink-0" />
-          <span className="text-zinc-500 font-normal shrink-0 truncate max-w-[100px] sm:max-w-none">{selectedUnit.leaderTitle}:</span>
-          <span className="font-semibold text-zinc-900 truncate max-w-[120px] sm:max-w-none">{selectedUnit.leaderName}</span>
+          <span className="text-zinc-500 font-normal shrink-0">{selectedUnit.leaderTitle}:</span>
+          <span className="font-semibold text-zinc-900 truncate max-w-[180px] sm:max-w-none">{selectedUnit.leaderName}</span>
         </Badge>
         {canManage && onUpdateUnit && (
           <button
@@ -267,7 +267,7 @@ export function CascadingUnitSelector({
       {/* Modal Chỉnh sửa thông tin đơn vị & chỉ huy (Bottom sheet on mobile, dialog on desktop) */}
       {isEditModalOpen && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 p-0 sm:p-4 backdrop-blur-xs animate-in fade-in">
-          <div className="w-full max-w-md bg-white rounded-t-xl sm:rounded-[3px] border border-zinc-200 shadow-xl overflow-hidden max-h-[92dvh] flex flex-col animate-in slide-in-from-bottom sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-200">
+          <div className="w-full max-w-md bg-white rounded-t-[4px] sm:rounded-[3px] border border-zinc-300 shadow-md overflow-hidden max-h-[92dvh] flex flex-col animate-in slide-in-from-bottom sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-200">
             {/* Mobile pull handle */}
             <div className="mx-auto mt-2 mb-1 h-1.5 w-12 rounded-full bg-zinc-300 sm:hidden" />
 
