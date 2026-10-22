@@ -268,6 +268,7 @@ function HomeContent() {
       {/* ── Header ──────────────────────────────────────────────────── */}
       <Header
         currentUser={currentUser}
+        units={units}
         onLogout={handleLogout}
         onOpenLogin={handleLogout}
         onToggleSidebar={() => setIsSidebarExpanded(!isSidebarExpanded)}
@@ -385,6 +386,7 @@ function HomeContent() {
             <SoldierList
               soldiers={soldiers}
               platoons={platoons}
+              units={units}
               onViewSoldierProfile={(s) => {
                 setSelectedSoldierForProfile(s);
                 handleTabChange('soldier_profile');
@@ -488,6 +490,7 @@ function HomeContent() {
         }}
         soldiers={soldiers}
         platoons={platoons}
+        units={units}
         preselectedSoldier={targetSoldierForCommendation}
         authorName={
           currentUser ? `${currentUser.rank || ''} ${currentUser.name}`.trim() : 'Trực ban'

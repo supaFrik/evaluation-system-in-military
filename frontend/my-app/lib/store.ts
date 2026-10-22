@@ -15,14 +15,7 @@ import {
   EmulationAppeal,
   AppealStatus,
 } from './types';
-import {
-  TODAY_DATE,
-  ALL_UNITS,
-  DEFAULT_CRITERIA,
-  MOCK_SOLDIERS,
-  mockUsers,
-  mockAppeals,
-} from './mock-data';
+import { TODAY_DATE } from './mock-data';
 import {
   authService,
   unitService,
@@ -39,19 +32,18 @@ import { notify } from './notify';
 const STORAGE_KEYS = {
   USER: 'thi_dua_user',
   SELECTED_UNIT: 'thi_dua_selected_unit',
-  APPEALS: 'thi_dua_appeals',
 };
 
 export function useEmulationStore() {
   const [currentUser, setCurrentUser] = useState<UserAccount | null>(null);
-  const [units, setUnits] = useState<MilitaryUnit[]>(ALL_UNITS);
-  const [users, setUsers] = useState<UserAccount[]>(mockUsers);
-  const [appeals, setAppeals] = useState<EmulationAppeal[]>(mockAppeals);
+  const [units, setUnits] = useState<MilitaryUnit[]>([]);
+  const [users, setUsers] = useState<UserAccount[]>([]);
+  const [appeals, setAppeals] = useState<EmulationAppeal[]>([]);
   const [unitRemarks, setUnitRemarks] = useState<Record<string, string>>({});
-  const [soldiers, setSoldiers] = useState<Soldier[]>(MOCK_SOLDIERS);
+  const [soldiers, setSoldiers] = useState<Soldier[]>([]);
   const [dailyScores, setDailyScores] = useState<DailyScore[]>([]);
   const [commendations, setCommendations] = useState<CommendationItem[]>([]);
-  const [criteria, setCriteria] = useState<EmulationCriterion[]>(DEFAULT_CRITERIA);
+  const [criteria, setCriteria] = useState<EmulationCriterion[]>([]);
   const [dailyLocks, setDailyLocks] = useState<Record<string, DailyLockStatus>>({});
   const [selectedDate, setSelectedDate] = useState<string>(TODAY_DATE);
   const [isLoaded, setIsLoaded] = useState(false);
@@ -60,7 +52,7 @@ export function useEmulationStore() {
   const [selectedUnitId, setSelectedUnitId] = useState<string>('e335');
   const [selectedTier, setSelectedTier] = useState<UnitTier>('REGIMENT');
 
-  // Khởi tạo và nạp dữ liệu từ Real API
+  // Khởi tạo và nạp dữ liệu 100% từ Real API (CSDL MySQL)
   useEffect(() => {
     let isMounted = true;
 
@@ -78,7 +70,6 @@ export function useEmulationStore() {
           return;
         }
 
-        // Tạm nạp từ cache để render nhanh
         if (savedUser) {
           try {
             const u = JSON.parse(savedUser);
@@ -90,7 +81,6 @@ export function useEmulationStore() {
           }
         }
 
-        // Gọi Backend GET /auth/me nếu có token để xác thực token và lấy thông tin chính thức từ CSDL
         if (token) {
           try {
             const me = await authService.getMe();
@@ -109,7 +99,6 @@ export function useEmulationStore() {
                 return;
               }
             }
-            // Nếu lỗi mạng hoặc server tạm thời nhưng có savedUser, giữ nguyên để không làm gián đoạn UI
           }
         }
 
@@ -126,28 +115,12 @@ export function useEmulationStore() {
           }
         }
 
-        // Nạp appeals từ cache LocalStorage hoặc mockAppeals
+        // Xóa cache appeals giả lập cũ nếu từng lưu trong LocalStorage
         if (typeof window !== 'undefined') {
-          const savedAppeals = localStorage.getItem(STORAGE_KEYS.APPEALS);
-          if (savedAppeals) {
-            try {
-              const parsedAppeals = JSON.parse(savedAppeals);
-              if (Array.isArray(parsedAppeals) && parsedAppeals.length > 0 && isMounted) {
-                setAppeals(parsedAppeals);
-              } else if (isMounted) {
-                setAppeals(mockAppeals);
-                localStorage.setItem(STORAGE_KEYS.APPEALS, JSON.stringify(mockAppeals));
-              }
-            } catch {
-              if (isMounted) setAppeals(mockAppeals);
-            }
-          } else {
-            if (isMounted) setAppeals(mockAppeals);
-            localStorage.setItem(STORAGE_KEYS.APPEALS, JSON.stringify(mockAppeals));
-          }
+          localStorage.removeItem('thi_dua_appeals');
         }
 
-        // 2. Gọi Real API song song để nạp đầy đủ các thực thể
+        // 2. Gọi Real API song song để nạp đầy đủ các thực thể từ CSDL
         const [
           unitsRes,
           soldiersRes,
@@ -170,24 +143,20 @@ export function useEmulationStore() {
 
         if (!isMounted) return;
 
-        // Cập nhật Units
-        if (unitsRes.status === 'fulfilled' && unitsRes.value?.length > 0) {
+        if (unitsRes.status === 'fulfilled' && Array.isArray(unitsRes.value)) {
           setUnits(unitsRes.value);
         }
 
-        // Cập nhật Soldiers
-        if (soldiersRes.status === 'fulfilled' && soldiersRes.value?.length > 0) {
+        if (soldiersRes.status === 'fulfilled' && Array.isArray(soldiersRes.value)) {
           setSoldiers(soldiersRes.value.map((s) => ({ ...s, avatarUrl: s.avatarUrl || '/default-avatar.png' })));
         }
 
-        // Cập nhật Criteria
-        if (criteriaRes.status === 'fulfilled' && criteriaRes.value?.length > 0) {
+        if (criteriaRes.status === 'fulfilled' && Array.isArray(criteriaRes.value)) {
           setCriteria(criteriaRes.value);
         }
 
-        // Cập nhật Daily Scores & Locks
         if (dailyScoresRes.status === 'fulfilled' && dailyScoresRes.value) {
-          if (dailyScoresRes.value.scores) {
+          if (Array.isArray(dailyScoresRes.value.scores)) {
             setDailyScores(dailyScoresRes.value.scores);
           }
           if (dailyScoresRes.value.lockStatus) {
@@ -195,30 +164,23 @@ export function useEmulationStore() {
           }
         }
 
-        // Cập nhật Commendations
         if (commendationsRes.status === 'fulfilled' && Array.isArray(commendationsRes.value)) {
           setCommendations(commendationsRes.value);
         }
 
-        // Cập nhật Lock Status nếu có
         if (lockStatusRes.status === 'fulfilled' && lockStatusRes.value) {
           setDailyLocks((prev) => ({ ...prev, [selectedDate]: lockStatusRes.value }));
         }
 
-        // Cập nhật Appeals
-        if (appealsRes.status === 'fulfilled' && Array.isArray(appealsRes.value) && appealsRes.value.length > 0) {
+        if (appealsRes.status === 'fulfilled' && Array.isArray(appealsRes.value)) {
           setAppeals(appealsRes.value);
-          if (typeof window !== 'undefined') {
-            localStorage.setItem(STORAGE_KEYS.APPEALS, JSON.stringify(appealsRes.value));
-          }
         }
 
-        // Cập nhật Users từ Backend nếu có
-        if (usersRes.status === 'fulfilled' && Array.isArray(usersRes.value) && usersRes.value.length > 0) {
+        if (usersRes.status === 'fulfilled' && Array.isArray(usersRes.value)) {
           setUsers(usersRes.value);
         }
       } catch (err: any) {
-        console.warn('Lỗi kết nối Real API, sử dụng dữ liệu cục bộ:', err);
+        console.error('Lỗi kết nối Real API:', err);
       } finally {
         if (isMounted) {
           setIsLoaded(true);
@@ -257,7 +219,7 @@ export function useEmulationStore() {
 
   // ── Lấy danh sách quân nhân thuộc đơn vị (đệ quy) ───────────────
   const getSoldiersForUnit = useCallback((unitId: string): Soldier[] => {
-    const unit = units.find((u) => u.id === unitId) || ALL_UNITS.find((u) => u.id === unitId);
+    const unit = units.find((u) => u.id === unitId);
     if (!unit) return soldiers;
 
     switch (unit.tier) {
@@ -439,15 +401,15 @@ export function useEmulationStore() {
   const fetchUsers = useCallback(async () => {
     try {
       const data = await userService.getAllUsers();
-      if (data && data.length > 0) {
+      if (Array.isArray(data)) {
         setUsers(data);
         return data;
       }
+      return [];
     } catch (error: any) {
-      console.warn('Lỗi lấy danh sách tài khoản từ API:', error);
+      console.error('Lỗi lấy danh sách tài khoản từ API:', error);
+      return [];
     }
-    setUsers((prev) => (prev.length > 0 ? prev : mockUsers));
-    return mockUsers;
   }, []);
 
   const assignUserSoldier = async (userId: string, soldierId: string) => {
@@ -487,8 +449,7 @@ export function useEmulationStore() {
 
   const assignScorersToUnit = async (unitId: string, scorerUserIds: string[]): Promise<void> => {
     try {
-      const baseUsers = users.length > 0 ? users : mockUsers;
-      const updatedUsers = baseUsers.map((user) => {
+      const updatedUsers = users.map((user) => {
         const isAssigned = scorerUserIds.includes(user.id);
         const currentAssigned = Array.isArray(user.assignedUnitIds) ? [...user.assignedUnitIds] : [];
         let newAssigned: string[];
@@ -506,9 +467,21 @@ export function useEmulationStore() {
         };
       });
 
+      const usersToSync = updatedUsers.filter((u) => {
+        const prev = users.find((p) => p.id === u.id);
+        const prevIds = prev?.assignedUnitIds || [];
+        return (
+          prevIds.length !== u.assignedUnitIds.length ||
+          prevIds.some((id) => !u.assignedUnitIds.includes(id))
+        );
+      });
+
+      await Promise.all(
+        usersToSync.map((u) => userService.assignUnitsToUser(u.id, u.assignedUnitIds))
+      );
+
       setUsers(updatedUsers);
 
-      // Cập nhật currentUser nếu bị ảnh hưởng
       if (currentUser) {
         const updatedCurrent = updatedUsers.find((u) => u.id === currentUser.id);
         if (updatedCurrent) {
@@ -519,20 +492,6 @@ export function useEmulationStore() {
         }
       }
 
-      // Đồng bộ tới backend API nếu có
-      const usersToSync = updatedUsers.filter((u) => {
-        const prev = baseUsers.find((p) => p.id === u.id);
-        const prevIds = prev?.assignedUnitIds || [];
-        return (
-          prevIds.length !== u.assignedUnitIds.length ||
-          prevIds.some((id) => !u.assignedUnitIds.includes(id))
-        );
-      });
-
-      await Promise.allSettled(
-        usersToSync.map((u) => userService.assignUnitsToUser(u.id, u.assignedUnitIds))
-      );
-
       notify.success('Phân quyền thành công', 'Đã cập nhật danh sách cán bộ chấm điểm cho đơn vị');
     } catch (error: unknown) {
       console.error('Lỗi phân quyền cán bộ chấm điểm:', error);
@@ -542,37 +501,19 @@ export function useEmulationStore() {
     }
   };
 
-  // ── Khiếu nại Thi đua (Emulation Appeals) ─────────────────────────
+  // ── Khiếu nại Thi đua (Strict Real API) ───────────────────────────
   const createAppeal = async (
     appealData: Omit<EmulationAppeal, 'id' | 'status' | 'createdAt'>
   ): Promise<EmulationAppeal> => {
-    const newAppeal: EmulationAppeal = {
-      ...appealData,
-      id: `appeal-${Date.now()}`,
-      status: 'PENDING',
-      createdAt: new Date().toISOString(),
-    };
-
-    let finalAppeal = newAppeal;
     try {
-      const apiResult = await appealService.createAppeal(appealData);
-      if (apiResult && apiResult.id) {
-        finalAppeal = apiResult;
-      }
-    } catch (err) {
-      console.warn('Backend API createAppeal không khả dụng, lưu vào local store:', err);
+      const created = await appealService.createAppeal(appealData);
+      setAppeals((prev) => [created, ...prev.filter((a) => a.id !== created.id)]);
+      notify.success('Gửi khiếu nại thành công', 'Ý kiến của đồng chí đã được chuyển tới cán bộ phụ trách');
+      return created;
+    } catch (error: any) {
+      notify.error('Lỗi gửi khiếu nại', error?.message || 'Không thể tạo đơn khiếu nại');
+      throw error;
     }
-
-    setAppeals((prev) => {
-      const updated = [finalAppeal, ...prev.filter((a) => a.id !== finalAppeal.id)];
-      if (typeof window !== 'undefined') {
-        localStorage.setItem(STORAGE_KEYS.APPEALS, JSON.stringify(updated));
-      }
-      return updated;
-    });
-
-    notify.success('Gửi khiếu nại thành công', 'Ý kiến của đồng chí đã được chuyển tới cán bộ phụ trách');
-    return finalAppeal;
   };
 
   const resolveAppeal = async (
@@ -580,181 +521,36 @@ export function useEmulationStore() {
     status: AppealStatus,
     reply: string
   ): Promise<EmulationAppeal> => {
-    const resolvedAt = new Date().toISOString();
     const resolvedBy = currentUser?.name || currentUser?.username || 'Cán bộ phụ trách';
     const targetAppeal = appeals.find((a) => a.id === appealId);
 
-    let resolvedItem: EmulationAppeal | undefined;
     try {
-      const apiResult = await appealService.resolveAppeal(appealId, status, reply, resolvedBy);
-      if (apiResult && apiResult.id) {
-        resolvedItem = apiResult;
+      const resolvedItem = await appealService.resolveAppeal(appealId, status, reply, resolvedBy);
+      setAppeals((prev) => prev.map((item) => (item.id === appealId ? resolvedItem : item)));
+
+      if (status === 'APPROVED' && targetAppeal) {
+        try {
+          const refreshedScores = await scoreService.getDailyScores(selectedDate);
+          if (refreshedScores?.scores) {
+            setDailyScores(refreshedScores.scores);
+          }
+        } catch {
+          // ignore
+        }
       }
-    } catch (err) {
-      console.warn('Backend API resolveAppeal không khả dụng, cập nhật local store:', err);
+
+      notify.success(
+        'Đã xử lý khiếu nại',
+        status === 'APPROVED'
+          ? `Đã chấp thuận và hoàn lại ${Math.abs(targetAppeal?.deductionPoints ?? 5)}đ cho chiến sĩ`
+          : 'Đã từ chối khiếu nại của chiến sĩ'
+      );
+
+      return resolvedItem;
+    } catch (error: any) {
+      notify.error('Lỗi xử lý khiếu nại', error?.message || 'Không thể lưu phản hồi khiếu nại');
+      throw error;
     }
-
-    let finalItem: EmulationAppeal =
-      resolvedItem ||
-      (targetAppeal
-        ? { ...targetAppeal, status, reply, resolvedAt, resolvedBy }
-        : ({
-            id: appealId,
-            soldierId: '',
-            soldierName: '',
-            unitId: '',
-            unitName: '',
-            date: selectedDate,
-            reason: '',
-            status,
-            reply,
-            createdAt: resolvedAt,
-            resolvedAt,
-            resolvedBy,
-          } as EmulationAppeal));
-
-    setAppeals((prev) => {
-      const updated = prev.map((item) => {
-        if (item.id === appealId) {
-          finalItem = resolvedItem || {
-            ...item,
-            status,
-            reply,
-            resolvedAt,
-            resolvedBy,
-          };
-          return finalItem;
-        }
-        return item;
-      });
-      if (typeof window !== 'undefined') {
-        localStorage.setItem(STORAGE_KEYS.APPEALS, JSON.stringify(updated));
-      }
-      return updated;
-    });
-
-    // Tự động hoàn lại số điểm bị trừ vào tiêu chí tương ứng của quân nhân trong ngày đó nếu APPROVED
-    if (status === 'APPROVED' && targetAppeal && targetAppeal.status !== 'APPROVED') {
-      const pointsToRestore = Math.abs(targetAppeal.deductionPoints ?? 5);
-      const critName = (targetAppeal.criterionName || '').toLowerCase();
-      const targetCritId =
-        targetAppeal.criterionId ||
-        (critName.includes('nhiệm vụ') || critName.includes('huấn luyện')
-          ? 'c_task'
-          : critName.includes('nội vụ') || critName.includes('vệ sinh')
-            ? 'c_hygiene'
-            : critName.includes('lễ tiết') || critName.includes('tác phong') || critName.includes('kỷ luật')
-              ? 'c_bearing'
-              : 'c_political');
-
-      setDailyScores((prev) => {
-        const idx = prev.findIndex(
-          (s) => s.soldierId === targetAppeal.soldierId && s.date === targetAppeal.date
-        );
-        const existing: DailyScore =
-          idx >= 0
-            ? prev[idx]
-            : {
-                id: `sc-${targetAppeal.soldierId}-${targetAppeal.date}`,
-                soldierId: targetAppeal.soldierId,
-                soldierName: targetAppeal.soldierName,
-                platoonId: targetAppeal.unitId,
-                date: targetAppeal.date,
-                politicalScore: 100,
-                taskScore: 100,
-                hygieneScore: 100,
-                bearingScore: 100,
-                totalScore: 400,
-                criteriaScores: {
-                  c_political: 100,
-                  c_task: 100,
-                  c_hygiene: 100,
-                  c_bearing: 100,
-                },
-                violations: [],
-                evaluatedBy: resolvedBy,
-              };
-
-        const critScores = { ...(existing.criteriaScores || {}) };
-        let politicalScore = existing.politicalScore ?? 100;
-        let taskScore = existing.taskScore ?? 100;
-        let hygieneScore = existing.hygieneScore ?? 100;
-        let bearingScore = existing.bearingScore ?? 100;
-
-        if (targetCritId === 'c_political') {
-          politicalScore = Math.min(100, politicalScore + pointsToRestore);
-          critScores['c_political'] = politicalScore;
-        } else if (targetCritId === 'c_task') {
-          taskScore = Math.min(100, taskScore + pointsToRestore);
-          critScores['c_task'] = taskScore;
-        } else if (targetCritId === 'c_hygiene') {
-          hygieneScore = Math.min(100, hygieneScore + pointsToRestore);
-          critScores['c_hygiene'] = hygieneScore;
-        } else if (targetCritId === 'c_bearing') {
-          bearingScore = Math.min(100, bearingScore + pointsToRestore);
-          critScores['c_bearing'] = bearingScore;
-        } else {
-          critScores[targetCritId] = Math.min(100, (critScores[targetCritId] ?? 95) + pointsToRestore);
-        }
-
-        const activeCriteriaList = criteria.filter((c) => c.isActive);
-        const totalScore =
-          activeCriteriaList.length > 0
-            ? activeCriteriaList.reduce(
-                (sum, c) =>
-                  sum +
-                  (critScores[c.id] !== undefined
-                    ? critScores[c.id]
-                    : c.id === 'c_political'
-                      ? politicalScore
-                      : c.id === 'c_task'
-                        ? taskScore
-                        : c.id === 'c_hygiene'
-                          ? hygieneScore
-                          : c.id === 'c_bearing'
-                            ? bearingScore
-                            : c.maxScore),
-                0
-              )
-            : politicalScore + taskScore + hygieneScore + bearingScore;
-
-        const updatedScore: DailyScore = {
-          ...existing,
-          politicalScore,
-          taskScore,
-          hygieneScore,
-          bearingScore,
-          criteriaScores: critScores,
-          totalScore,
-          violations: [
-            ...(existing.violations || []),
-            {
-              id: `v-appeal-${Date.now()}`,
-              category: 'chinh_tri',
-              content: `Hoàn điểm sau khiếu nại được chấp thuận (${targetAppeal.criterionName || 'Chung'}): +${pointsToRestore}đ`,
-              points: pointsToRestore,
-              criterionId: targetCritId,
-            },
-          ],
-        };
-
-        if (idx >= 0) {
-          const next = [...prev];
-          next[idx] = updatedScore;
-          return next;
-        }
-        return [updatedScore, ...prev];
-      });
-    }
-
-    notify.success(
-      'Đã xử lý khiếu nại',
-      status === 'APPROVED'
-        ? `Đã chấp thuận và hoàn lại ${Math.abs(targetAppeal?.deductionPoints ?? 5)}đ cho chiến sĩ`
-        : 'Đã từ chối khiếu nại của chiến sĩ'
-    );
-
-    return finalItem;
   };
 
   // ── Quản lý Quân nhân (Strict Real API) ─────────────────────────
@@ -972,10 +768,7 @@ export function useEmulationStore() {
         }, 0) / count
       );
 
-      let remark = '';
-      if (p.id === 'C1-B1') remark = 'Nội vụ vệ sinh vuông đẹp, lễ tiết tác phong nghiêm túc';
-      else if (p.id === 'C1-B2') remark = 'Chính trị vững vàng, cần chấn chỉnh việc duy trì trật tự';
-      else if (p.id === 'C1-B3') remark = 'Nhiệm vụ huấn luyện đạt kết quả cao, tác phong khẩn trương';
+      const remark = unitRemarks[`${p.id}_${date}`] || '';
 
       return {
         platoonId: p.id,

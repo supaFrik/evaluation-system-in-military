@@ -2,18 +2,24 @@ package com.trungdoi.danhgia.modules.auth;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.trungdoi.danhgia.common.enums.UnitTier;
+import com.trungdoi.danhgia.common.enums.UserRole;
 import com.trungdoi.danhgia.modules.auth.dto.request.LoginRequest;
 import com.trungdoi.danhgia.modules.auth.dto.request.RefreshTokenRequest;
 import com.trungdoi.danhgia.modules.auth.dto.request.RegisterRequest;
 import com.trungdoi.danhgia.modules.auth.dto.request.VerifyOtpRequest;
 import com.trungdoi.danhgia.modules.auth.entity.OtpToken;
+import com.trungdoi.danhgia.modules.auth.entity.UserAccount;
 import com.trungdoi.danhgia.modules.auth.repository.OtpTokenRepository;
+import com.trungdoi.danhgia.modules.auth.repository.UserAccountRepository;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
@@ -35,6 +41,34 @@ class AuthControllerTest {
 
     @Autowired
     private OtpTokenRepository otpTokenRepository;
+
+    @Autowired
+    private UserAccountRepository userAccountRepository;
+
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+
+    @BeforeEach
+    void setUp() {
+        if (!userAccountRepository.existsByUsernameIgnoreCase("thang_b1")) {
+            userAccountRepository.save(UserAccount.builder()
+                    .id("u_test_thang_b1")
+                    .username("thang_b1")
+                    .password(passwordEncoder.encode("Password@123"))
+                    .name("Nguyễn Văn Thắng")
+                    .rank("Trung úy")
+                    .role(UserRole.ADMIN)
+                    .roleTitle("Trung đội trưởng B1")
+                    .platoonId("C1-B1")
+                    .phone("0911000005")
+                    .email("thang.nguyen@mod.gov.vn")
+                    .status("ACTIVE")
+                    .unitScopeTier(UnitTier.PLATOON)
+                    .assignedUnitId("C1-B1")
+                    .assignedUnitIdsJson("[\"C1-B1\"]")
+                    .build());
+        }
+    }
 
     @Test
     @DisplayName("AC1: Login successfully with thang_b1 account and return valid JWT with role ADMIN")

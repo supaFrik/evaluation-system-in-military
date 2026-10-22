@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import Image from 'next/image';
-import { Soldier, Platoon, UnitTier } from '@/lib/types';
+import { MilitaryUnit, Soldier, Platoon, UnitTier } from '@/lib/types';
 import CascadingUnitSelector from '@/components/layout/cascading-unit-selector';
 import { Search, ChevronRight, UserPlus, Pencil, X, Trash2, ArrowRightLeft, ArrowUpRightIcon, Eye, MoreHorizontal, ChevronDown } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
@@ -17,11 +17,11 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { notify } from '@/lib/notify';
-import { ALL_UNITS } from '@/lib/mock-data';
 
 interface SoldierListProps {
   soldiers: Soldier[];
   platoons: Platoon[];
+  units?: MilitaryUnit[];
   onViewSoldierProfile: (soldier: Soldier) => void;
   canManage?: boolean;
   onAddSoldier?: (soldier: Omit<Soldier, 'id'>) => void;
@@ -41,6 +41,7 @@ const PARTY_STATUSES = ['Đoàn viên', 'Đảng viên dự bị', 'Đảng viê
 export function SoldierList({
   soldiers,
   platoons,
+  units = [],
   onViewSoldierProfile,
   canManage = true,
   onAddSoldier,
@@ -154,26 +155,26 @@ export function SoldierList({
     e.preventDefault();
     if (!formData.name.trim()) return;
 
-    // Automatically resolve parent hierarchy units from ALL_UNITS
+    // Automatically resolve parent hierarchy units from units
     const selectedPlatoonUnit =
-      ALL_UNITS.find((u) => u.id === formData.platoonId) ||
-      ALL_UNITS.find((u) => u.tier === 'PLATOON');
+      units.find((u) => u.id === formData.platoonId) ||
+      units.find((u) => u.tier === 'PLATOON');
     const platoonId = selectedPlatoonUnit?.id || 'C1-B1';
     const platoonName = selectedPlatoonUnit?.name || 'Trung đội 1';
 
     const companyUnit = selectedPlatoonUnit?.parentId
-      ? ALL_UNITS.find((u) => u.id === selectedPlatoonUnit.parentId)
+      ? units.find((u) => u.id === selectedPlatoonUnit.parentId)
       : undefined;
     const companyId = companyUnit?.id || 'C1';
     const companyName = companyUnit?.name || 'Đại đội 1';
 
     const battalionUnit = companyUnit?.parentId
-      ? ALL_UNITS.find((u) => u.id === companyUnit.parentId)
+      ? units.find((u) => u.id === companyUnit.parentId)
       : undefined;
     const battalionId = battalionUnit?.id || 'dBB4';
     const battalionName = battalionUnit?.name || 'Tiểu đoàn Bộ Binh 4';
 
-    const squadUnit = ALL_UNITS.find(
+    const squadUnit = units.find(
       (u) =>
         u.parentId === platoonId &&
         (u.id === formData.squadId || u.name === formData.squadName)
@@ -225,6 +226,7 @@ export function SoldierList({
         selectedUnitId={activeUnitId}
         onSelectUnit={handleUnitSelect}
         allowedRootId={allowedRootId}
+        units={units}
       />
 
       {/* 1. Filters & Action Controls */}
@@ -547,7 +549,7 @@ export function SoldierList({
                         value={formData.platoonId}
                         onChange={(e) => {
                           const newPlatoonId = e.target.value;
-                          const childSquads = ALL_UNITS.filter(
+                          const childSquads = units.filter(
                             (u) => u.parentId === newPlatoonId && u.tier === 'SQUAD'
                           );
                           const firstSquad = childSquads[0];
@@ -560,8 +562,8 @@ export function SoldierList({
                         }}
                         className="w-full rounded border border-zinc-300 bg-white px-2.5 py-1.5 focus:border-[#b91c1c] focus:outline-none font-semibold text-zinc-800"
                       >
-                        {ALL_UNITS.filter((u) => u.tier === 'PLATOON').map((p) => {
-                          const parentComp = ALL_UNITS.find((u) => u.id === p.parentId);
+                        {units.filter((u) => u.tier === 'PLATOON').map((p) => {
+                          const parentComp = units.find((u) => u.id === p.parentId);
                           return (
                             <option key={p.id} value={p.id}>
                               {p.name} ({parentComp ? parentComp.name : p.code})
@@ -577,7 +579,7 @@ export function SoldierList({
                         value={formData.squadId}
                         onChange={(e) => {
                           const sqId = e.target.value;
-                          const sq = ALL_UNITS.find((u) => u.id === sqId);
+                          const sq = units.find((u) => u.id === sqId);
                           setFormData({
                             ...formData,
                             squadId: sqId,
@@ -586,7 +588,7 @@ export function SoldierList({
                         }}
                         className="w-full rounded border border-zinc-300 bg-white px-2.5 py-1.5 focus:border-[#b91c1c] focus:outline-none font-semibold text-zinc-800"
                       >
-                        {ALL_UNITS.filter(
+                        {units.filter(
                           (u) => u.parentId === formData.platoonId && u.tier === 'SQUAD'
                         ).map((s) => (
                           <option key={s.id} value={s.id}>

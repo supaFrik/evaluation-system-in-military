@@ -86,7 +86,7 @@ export function CascadingUnitSelector({
   // Helpers to handle allowedRootId scope
   const isDescendantOrSelf = (unitId: string, ancestorId: string) => {
     if (unitId === ancestorId) return true;
-    return getAncestorChain(unitId).some((u) => u.id === ancestorId);
+    return getAncestorChain(unitId, allUnits).some((u) => u.id === ancestorId);
   };
 
   const isOptionVisible = (unitId: string) => {

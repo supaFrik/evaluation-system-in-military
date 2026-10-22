@@ -1,4 +1,4 @@
-name: CI/CD Pipeline - Military Emulation System
+name: CI/CD Pipeline
 
 on:
   push:

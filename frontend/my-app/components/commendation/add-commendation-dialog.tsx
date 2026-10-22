@@ -1,9 +1,9 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Soldier, Platoon, CommendationItem, DisciplineDocument } from '@/lib/types';
+import { MilitaryUnit, Soldier, Platoon, CommendationItem, DisciplineDocument } from '@/lib/types';
 import { X, FileText, ChevronDown, ChevronRight } from 'lucide-react';
-import { ALL_UNITS, TODAY_DATE } from '@/lib/mock-data';
+import { TODAY_DATE } from '@/lib/mock-data';
 
 interface AddCommendationDialogProps {
   isOpen: boolean;
@@ -11,6 +11,7 @@ interface AddCommendationDialogProps {
   onAdd: (item: Omit<CommendationItem, 'id' | 'date'>) => void;
   soldiers: Soldier[];
   platoons: Platoon[];
+  units?: MilitaryUnit[];
   preselectedSoldier?: Soldier | null;
   authorName: string;
 }
@@ -29,6 +30,7 @@ export function AddCommendationDialog({
   onAdd,
   soldiers,
   platoons,
+  units = [],
   preselectedSoldier,
   authorName,
 }: AddCommendationDialogProps) {
@@ -63,7 +65,7 @@ export function AddCommendationDialog({
       targetName = s ? `${s.rank} ${s.name} (${s.platoonName})` : targetId;
       platoonId = s?.platoonId;
     } else {
-      const unit = ALL_UNITS.find((x) => x.id === targetId);
+      const unit = units.find((x) => x.id === targetId);
       const plat = platoons.find((x) => x.id === targetId);
       targetName = unit ? unit.name : plat ? plat.name : targetId;
       platoonId = unit
@@ -154,7 +156,7 @@ export function AddCommendationDialog({
                       {s.name} — {s.rank} ({s.squadName}, {s.platoonName})
                     </option>
                   ))
-                : ALL_UNITS.filter((u) => u.tier === 'PLATOON' || u.tier === 'COMPANY' || u.tier === 'SQUAD').map((u) => {
+                : units.filter((u) => u.tier === 'PLATOON' || u.tier === 'COMPANY' || u.tier === 'SQUAD').map((u) => {
                     const typeLabel = u.tier === 'COMPANY' ? 'Đại đội' : u.tier === 'PLATOON' ? 'Trung đội' : 'Tiểu đội';
                     return (
                       <option key={u.id} value={u.id}>

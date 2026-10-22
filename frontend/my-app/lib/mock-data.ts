@@ -1,411 +1,81 @@
-import { UserAccount, Platoon, Soldier, DailyScore, CommendationItem, EmulationCriterion, MilitaryUnit, EmulationAppeal } from './types';
+import {
+  UserAccount,
+  Platoon,
+  Soldier,
+  DailyScore,
+  CommendationItem,
+  EmulationCriterion,
+  MilitaryUnit,
+  EmulationAppeal,
+} from './types';
 
 // ══════════════════════════════════════════════════════════════════════
-// TIÊU CHÍ THI ĐUA MẶC ĐỊNH (4 tiêu chí chuẩn)
+// HẰNG SỐ HỆ THỐNG & HÀM TIỆN ÍCH CÂY ĐƠN VỊ (ĐÃ XÓA TOÀN BỘ MOCK DATA)
+// Toàn bộ dữ liệu nghiệp vụ được nạp 100% từ CSDL MySQL qua REST API
 // ══════════════════════════════════════════════════════════════════════
-
-export const DEFAULT_CRITERIA: EmulationCriterion[] = [
-  {
-    id: 'c_political',
-    name: 'Chất lượng chính trị, tư tưởng',
-    code: 'CT',
-    maxScore: 100,
-    description: 'Chấp hành nghiêm đường lối của Đảng, pháp luật Nhà nước, kỷ luật Quân đội; gương mẫu trong học tập chính trị.',
-    deductionRules: [
-      'Không tập trung trong giờ học tập chính trị (-5đ)',
-      'Không thuộc 10 lời thề, 12 điều kỷ luật (-10đ)',
-      'Có biểu hiện tư tưởng dao động, thiếu an tâm công tác (-20đ)',
-    ],
-    isActive: true,
-    category: 'CHINH_TRI',
-  },
-  {
-    id: 'c_task',
-    name: 'Huấn luyện & Thực hiện nhiệm vụ',
-    code: 'NV',
-    maxScore: 100,
-    description: 'Tham gia đầy đủ, nghiêm túc các khoa mục huấn luyện quân sự; hoàn thành tốt nhiệm vụ trực sẵn sàng chiến đấu, tăng gia sản xuất.',
-    deductionRules: [
-      'Chậm giờ tập trung huấn luyện, báo động (-5đ)',
-      'Huấn luyện kiểm tra không đạt yêu cầu (-10đ)',
-      'Bỏ vị trí gác, trực ban không báo cáo (-30đ)',
-    ],
-    isActive: true,
-    category: 'QUAN_SU',
-  },
-  {
-    id: 'c_hygiene',
-    name: 'Nội vụ, vệ sinh & Thể lực',
-    code: 'NVVS',
-    maxScore: 100,
-    description: 'Duy trì nền nếp nội vụ vệ sinh gọn gàng, xếp chăn màn vuông vức, rèn luyện thể lực 4 bài thể dục sáng.',
-    deductionRules: [
-      'Chăn màn gấp chưa vuông, đặt sai quy định (-5đ)',
-      'Giày dép, quân trang để lộn xộn (-5đ)',
-      'Không tham gia thể dục sáng, rèn luyện thể lực (-10đ)',
-    ],
-    isActive: true,
-    category: 'HAU_CAN',
-  },
-  {
-    id: 'c_bearing',
-    name: 'Lễ tiết tác phong & Chấp hành kỷ luật',
-    code: 'LTP',
-    maxScore: 100,
-    description: 'Xưng hô chào hỏi đúng điều lệnh quản lý bộ đội; quân dung tươi tỉnh, đầu tóc cắt ngắn gọn gàng đúng quy cách.',
-    deductionRules: [
-      'Xưng hô, chào hỏi chưa đúng điều lệnh (-5đ)',
-      'Đầu tóc dài, mang mặc sai lễ tiết (-5đ)',
-      'Vi phạm quy định sử dụng điện thoại thông minh (-20đ)',
-    ],
-    isActive: true,
-    category: 'KY_LUAT',
-  },
-];
 
 export const DEFAULT_AVATAR = '/default-avatar.png';
 
-// ══════════════════════════════════════════════════════════════════════
-// CÂY ĐƠN VỊ PHÂN CẤP TRUNG ĐOÀN BB335 (Sư đoàn BB324)
-// ══════════════════════════════════════════════════════════════════════
-// Cấp: REGIMENT > BATTALION > COMPANY > PLATOON > SQUAD
+export const TODAY_DATE = new Intl.DateTimeFormat('en-CA', {
+  timeZone: 'Asia/Ho_Chi_Minh',
+}).format(new Date());
 
+// Placeholder gốc cho trường hợp đang tải cây đơn vị từ API
 export const REGIMENT_UNIT: MilitaryUnit = {
   id: 'e335',
   name: 'Trung đoàn Bộ Binh 335',
   code: 'e335',
   tier: 'REGIMENT',
   leaderTitle: 'Trung đoàn trưởng',
-  leaderName: 'Thượng tá NGUYỄN QUANG HUY',
-  totalSoldiers: 0, // Tính tổng tự động
+  leaderName: '',
+  totalSoldiers: 0,
 };
 
-// ── 4 Khối chính ────────────────────────────────────────────────────
+// Toàn bộ mảng khởi tạo để rỗng — chỉ nhận dữ liệu thực từ CSDL
+export const DEFAULT_CRITERIA: EmulationCriterion[] = [];
+export const BATTALION_UNITS: MilitaryUnit[] = [];
+export const COMPANY_UNITS: MilitaryUnit[] = [];
+export const PLATOON_UNITS: MilitaryUnit[] = [];
+export const SQUAD_UNITS: MilitaryUnit[] = [];
+export const ALL_UNITS: MilitaryUnit[] = [];
+export const MOCK_PLATOONS: Platoon[] = [];
+export const MOCK_ACCOUNTS: UserAccount[] = [];
+export const MOCK_SOLDIERS: Soldier[] = [];
+export const MOCK_DAILY_SCORES: DailyScore[] = [];
+export const MOCK_COMMENDATIONS: CommendationItem[] = [];
+export const mockUsers: UserAccount[] = [];
+export const MOCK_USERS: UserAccount[] = [];
+export const mockAppeals: EmulationAppeal[] = [];
+export const MOCK_APPEALS: EmulationAppeal[] = [];
 
-export const BATTALION_UNITS: MilitaryUnit[] = [
-  {
-    id: 'dBB4',
-    name: 'Tiểu đoàn Bộ Binh 4',
-    code: 'dBB4',
-    tier: 'BATTALION',
-    parentId: 'e335',
-    leaderTitle: 'Tiểu đoàn trưởng',
-    leaderName: 'Thiếu tá TRẦN ĐẠI NGHĨA',
-    totalSoldiers: 0,
-  },
-  {
-    id: 'dBB5',
-    name: 'Tiểu đoàn Bộ Binh 5',
-    code: 'dBB5',
-    tier: 'BATTALION',
-    parentId: 'e335',
-    leaderTitle: 'Tiểu đoàn trưởng',
-    leaderName: 'Thiếu tá LÊ MINH QUÂN',
-    totalSoldiers: 0,
-  },
-  {
-    id: 'dBB6',
-    name: 'Tiểu đoàn Bộ Binh 6',
-    code: 'dBB6',
-    tier: 'BATTALION',
-    parentId: 'e335',
-    leaderTitle: 'Tiểu đoàn trưởng',
-    leaderName: 'Thiếu tá PHẠM HỒNG SƠN',
-    totalSoldiers: 0,
-  },
-  {
-    id: 'cTT',
-    name: 'Khối Đại đội Trực thuộc',
-    code: 'cTT',
-    tier: 'BATTALION',
-    parentId: 'e335',
-    leaderTitle: 'Phó Trung đoàn trưởng phụ trách',
-    leaderName: 'Trung tá VŨ ĐÌNH TRỌNG',
-    totalSoldiers: 0,
-  },
-];
-
-// ── Đại đội thuộc Tiểu đoàn BB4 ────────────────────────────────────
-
-export const COMPANY_UNITS: MilitaryUnit[] = [
-  // === Tiểu đoàn BB4 ===
-  { id: 'C1', name: 'Đại đội 1', code: 'C1', tier: 'COMPANY', parentId: 'dBB4', leaderTitle: 'Đại đội trưởng', leaderName: 'Đại úy NGUYỄN THẾ ANH', totalSoldiers: 0 },
-  { id: 'C2', name: 'Đại đội 2', code: 'C2', tier: 'COMPANY', parentId: 'dBB4', leaderTitle: 'Đại đội trưởng', leaderName: 'Đại úy HOÀNG VĂN LONG', totalSoldiers: 0 },
-  { id: 'C3', name: 'Đại đội 3', code: 'C3', tier: 'COMPANY', parentId: 'dBB4', leaderTitle: 'Đại đội trưởng', leaderName: 'Đại úy PHẠM TUẤN KIỆT', totalSoldiers: 0 },
-  { id: 'C4', name: 'Đại đội Hỏa lực 4', code: 'C4', tier: 'COMPANY', parentId: 'dBB4', leaderTitle: 'Đại đội trưởng', leaderName: 'Đại úy VŨ MẠNH CƯỜNG', totalSoldiers: 0 },
-  // === Tiểu đoàn BB5 ===
-  { id: 'C5', name: 'Đại đội 5', code: 'C5', tier: 'COMPANY', parentId: 'dBB5', leaderTitle: 'Đại đội trưởng', leaderName: 'Đại úy ĐẶNG QUỐC TUẤN', totalSoldiers: 0 },
-  { id: 'C6', name: 'Đại đội 6', code: 'C6', tier: 'COMPANY', parentId: 'dBB5', leaderTitle: 'Đại đội trưởng', leaderName: 'Đại úy BÙI VĂN HẢI', totalSoldiers: 0 },
-  { id: 'C7', name: 'Đại đội 7', code: 'C7', tier: 'COMPANY', parentId: 'dBB5', leaderTitle: 'Đại đội trưởng', leaderName: 'Đại úy NGUYỄN HỮU ĐẠT', totalSoldiers: 0 },
-  { id: 'C8', name: 'Đại đội Hỏa lực 8', code: 'C8', tier: 'COMPANY', parentId: 'dBB5', leaderTitle: 'Đại đội trưởng', leaderName: 'Đại úy LÊ VĂN TÙNG', totalSoldiers: 0 },
-  // === Tiểu đoàn BB6 ===
-  { id: 'C9', name: 'Đại đội 9', code: 'C9', tier: 'COMPANY', parentId: 'dBB6', leaderTitle: 'Đại đội trưởng', leaderName: 'Đại úy TRẦN MINH ĐỨC', totalSoldiers: 0 },
-  { id: 'C10', name: 'Đại đội 10', code: 'C10', tier: 'COMPANY', parentId: 'dBB6', leaderTitle: 'Đại đội trưởng', leaderName: 'Đại úy NGUYỄN VĂN THẢO', totalSoldiers: 0 },
-  { id: 'C11', name: 'Đại đội 11', code: 'C11', tier: 'COMPANY', parentId: 'dBB6', leaderTitle: 'Đại đội trưởng', leaderName: 'Đại úy ĐOÀN QUỐC KHÁNH', totalSoldiers: 0 },
-  { id: 'C12', name: 'Đại đội Hỏa lực 12', code: 'C12', tier: 'COMPANY', parentId: 'dBB6', leaderTitle: 'Đại đội trưởng', leaderName: 'Đại úy PHAN ANH DŨNG', totalSoldiers: 0 },
-  // === Khối Trực thuộc ===
-  { id: 'C14', name: 'Đại đội Cối 100mm (C14)', code: 'C14', tier: 'COMPANY', parentId: 'cTT', leaderTitle: 'Đại đội trưởng', leaderName: 'Đại úy NGUYỄN QUỐC BÌNH', totalSoldiers: 0 },
-  { id: 'C16', name: 'Đại đội PK 12.7mm (C16)', code: 'C16', tier: 'COMPANY', parentId: 'cTT', leaderTitle: 'Đại đội trưởng', leaderName: 'Đại úy TRẦN VĂN PHÚC', totalSoldiers: 0 },
-  { id: 'C17', name: 'Đại đội Công binh (C17)', code: 'C17', tier: 'COMPANY', parentId: 'cTT', leaderTitle: 'Đại đội trưởng', leaderName: 'Đại úy LÊ HOÀNG NAM', totalSoldiers: 0 },
-  { id: 'C18', name: 'Đại đội Thông tin (C18)', code: 'C18', tier: 'COMPANY', parentId: 'cTT', leaderTitle: 'Đại đội trưởng', leaderName: 'Đại úy VŨ ĐỨC MẠNH', totalSoldiers: 0 },
-  { id: 'C20', name: 'Đại đội Trinh sát (C20)', code: 'C20', tier: 'COMPANY', parentId: 'cTT', leaderTitle: 'Đại đội trưởng', leaderName: 'Đại úy HOÀNG MINH TÂN', totalSoldiers: 0 },
-  { id: 'C24', name: 'Đại đội Quân y (C24)', code: 'C24', tier: 'COMPANY', parentId: 'cTT', leaderTitle: 'Đại đội trưởng', leaderName: 'Đại úy BS. NGUYỄN THỊ HƯƠNG', totalSoldiers: 0 },
-];
-
-// ── Trung đội & Tiểu đội chi tiết: Đại đội 1 (dBB4) ────────────────
-
-export const PLATOON_UNITS: MilitaryUnit[] = [
-  // === C1 / dBB4 — chi tiết ===
-  { id: 'C1-B1', name: 'Trung đội 1', code: 'B1', tier: 'PLATOON', parentId: 'C1', leaderTitle: 'Trung đội trưởng', leaderName: 'Thượng úy LÊ HOÀNG HẢI', totalSoldiers: 0 },
-  { id: 'C1-B2', name: 'Trung đội 2', code: 'B2', tier: 'PLATOON', parentId: 'C1', leaderTitle: 'Trung đội trưởng', leaderName: 'Trung úy VŨ ĐÌNH TRỌNG', totalSoldiers: 0 },
-  { id: 'C1-B3', name: 'Trung đội 3', code: 'B3', tier: 'PLATOON', parentId: 'C1', leaderTitle: 'Trung đội trưởng', leaderName: 'Thiếu úy PHẠM MINH TUẤN', totalSoldiers: 0 },
-  // === C18 / cTT — chi tiết ===
-  { id: 'C18-B1', name: 'Trung đội 1', code: 'B1', tier: 'PLATOON', parentId: 'C18', leaderTitle: 'Trung đội trưởng', leaderName: 'Thượng úy TRẦN QUANG MINH', totalSoldiers: 0 },
-  { id: 'C18-B2', name: 'Trung đội 2', code: 'B2', tier: 'PLATOON', parentId: 'C18', leaderTitle: 'Trung đội trưởng', leaderName: 'Trung úy NGUYỄN ĐỨC TOÀN', totalSoldiers: 0 },
-  { id: 'C18-B3', name: 'Trung đội 3', code: 'B3', tier: 'PLATOON', parentId: 'C18', leaderTitle: 'Trung đội trưởng', leaderName: 'Thiếu úy LÊ VĂN THÀNH', totalSoldiers: 0 },
-];
-
-export const SQUAD_UNITS: MilitaryUnit[] = [
-  // === C1-B1 ===
-  { id: 'C1-B1-A1', name: 'Tiểu đội 1', code: 'A1', tier: 'SQUAD', parentId: 'C1-B1', leaderTitle: 'Tiểu đội trưởng', leaderName: 'Trung sĩ TRẦN VĂN BÌNH', totalSoldiers: 0 },
-  { id: 'C1-B1-A2', name: 'Tiểu đội 2', code: 'A2', tier: 'SQUAD', parentId: 'C1-B1', leaderTitle: 'Tiểu đội trưởng', leaderName: 'Trung sĩ NGUYỄN VĂN HÒA', totalSoldiers: 0 },
-  { id: 'C1-B1-A3', name: 'Tiểu đội 3', code: 'A3', tier: 'SQUAD', parentId: 'C1-B1', leaderTitle: 'Tiểu đội trưởng', leaderName: 'Hạ sĩ PHẠM QUỐC HƯNG', totalSoldiers: 0 },
-  // === C1-B2 ===
-  { id: 'C1-B2-A1', name: 'Tiểu đội 1', code: 'A1', tier: 'SQUAD', parentId: 'C1-B2', leaderTitle: 'Tiểu đội trưởng', leaderName: 'Trung sĩ LÊ THANH TÙNG', totalSoldiers: 0 },
-  { id: 'C1-B2-A2', name: 'Tiểu đội 2', code: 'A2', tier: 'SQUAD', parentId: 'C1-B2', leaderTitle: 'Tiểu đội trưởng', leaderName: 'Hạ sĩ ĐẶNG VĂN HIẾU', totalSoldiers: 0 },
-  { id: 'C1-B2-A3', name: 'Tiểu đội 3', code: 'A3', tier: 'SQUAD', parentId: 'C1-B2', leaderTitle: 'Tiểu đội trưởng', leaderName: 'Hạ sĩ TRẦN XUÂN NAM', totalSoldiers: 0 },
-  // === C1-B3 ===
-  { id: 'C1-B3-A1', name: 'Tiểu đội 1', code: 'A1', tier: 'SQUAD', parentId: 'C1-B3', leaderTitle: 'Tiểu đội trưởng', leaderName: 'Trung sĩ NGÔ VĂN THẮNG', totalSoldiers: 0 },
-  { id: 'C1-B3-A2', name: 'Tiểu đội 2', code: 'A2', tier: 'SQUAD', parentId: 'C1-B3', leaderTitle: 'Tiểu đội trưởng', leaderName: 'Hạ sĩ VŨ HOÀNG ANH', totalSoldiers: 0 },
-  { id: 'C1-B3-A3', name: 'Tiểu đội 3', code: 'A3', tier: 'SQUAD', parentId: 'C1-B3', leaderTitle: 'Tiểu đội trưởng', leaderName: 'Hạ sĩ NGUYỄN VĂN LONG', totalSoldiers: 0 },
-  // === C18-B1 ===
-  { id: 'C18-B1-A1', name: 'Tiểu đội 1', code: 'A1', tier: 'SQUAD', parentId: 'C18-B1', leaderTitle: 'Tiểu đội trưởng', leaderName: 'Trung sĩ PHẠM HỒNG QUÂN', totalSoldiers: 0 },
-  { id: 'C18-B1-A2', name: 'Tiểu đội 2', code: 'A2', tier: 'SQUAD', parentId: 'C18-B1', leaderTitle: 'Tiểu đội trưởng', leaderName: 'Hạ sĩ NGUYỄN BÁ ĐỨC', totalSoldiers: 0 },
-  { id: 'C18-B1-A3', name: 'Tiểu đội 3', code: 'A3', tier: 'SQUAD', parentId: 'C18-B1', leaderTitle: 'Tiểu đội trưởng', leaderName: 'Hạ sĩ LÊ ĐỨC MINH', totalSoldiers: 0 },
-  // === C18-B2 ===
-  { id: 'C18-B2-A1', name: 'Tiểu đội 1', code: 'A1', tier: 'SQUAD', parentId: 'C18-B2', leaderTitle: 'Tiểu đội trưởng', leaderName: 'Trung sĩ HOÀNG VĂN ĐẠT', totalSoldiers: 0 },
-  { id: 'C18-B2-A2', name: 'Tiểu đội 2', code: 'A2', tier: 'SQUAD', parentId: 'C18-B2', leaderTitle: 'Tiểu đội trưởng', leaderName: 'Hạ sĩ TRẦN THẾ LONG', totalSoldiers: 0 },
-  { id: 'C18-B2-A3', name: 'Tiểu đội 3', code: 'A3', tier: 'SQUAD', parentId: 'C18-B2', leaderTitle: 'Tiểu đội trưởng', leaderName: 'Hạ sĩ VŨ MINH ĐỨC', totalSoldiers: 0 },
-  // === C18-B3 ===
-  { id: 'C18-B3-A1', name: 'Tiểu đội 1', code: 'A1', tier: 'SQUAD', parentId: 'C18-B3', leaderTitle: 'Tiểu đội trưởng', leaderName: 'Trung sĩ ĐẶNG NGỌC HÀ', totalSoldiers: 0 },
-  { id: 'C18-B3-A2', name: 'Tiểu đội 2', code: 'A2', tier: 'SQUAD', parentId: 'C18-B3', leaderTitle: 'Tiểu đội trưởng', leaderName: 'Hạ sĩ BÙI VĂN ĐÔNG', totalSoldiers: 0 },
-  { id: 'C18-B3-A3', name: 'Tiểu đội 3', code: 'A3', tier: 'SQUAD', parentId: 'C18-B3', leaderTitle: 'Tiểu đội trưởng', leaderName: 'Hạ sĩ PHAN TRỌNG NGHĨA', totalSoldiers: 0 },
-];
-
-// ── Tổng hợp toàn bộ đơn vị ─────────────────────────────────────────
-export const ALL_UNITS: MilitaryUnit[] = [
-  REGIMENT_UNIT,
-  ...BATTALION_UNITS,
-  ...COMPANY_UNITS,
-  ...PLATOON_UNITS,
-  ...SQUAD_UNITS,
-];
-
-// ── Helper: lấy các đơn vị con trực tiếp ────────────────────────────
-export function getChildUnits(parentId: string): MilitaryUnit[] {
-  return ALL_UNITS.filter((u) => u.parentId === parentId);
+// ── Helper: lấy các đơn vị con trực tiếp từ danh sách đơn vị ─────────
+export function getChildUnits(parentId: string, unitList: MilitaryUnit[] = ALL_UNITS): MilitaryUnit[] {
+  return unitList.filter((u) => u.parentId === parentId);
 }
 
-// ── Helper: lấy toàn bộ đơn vị con (đệ quy) ────────────────────────
-export function getDescendantUnits(parentId: string): MilitaryUnit[] {
-  const children = getChildUnits(parentId);
+// ── Helper: lấy toàn bộ đơn vị con (đệ quy) ──────────────────────────
+export function getDescendantUnits(parentId: string, unitList: MilitaryUnit[] = ALL_UNITS): MilitaryUnit[] {
+  const children = getChildUnits(parentId, unitList);
   return children.reduce<MilitaryUnit[]>(
-    (acc, child) => [...acc, child, ...getDescendantUnits(child.id)],
+    (acc, child) => [...acc, child, ...getDescendantUnits(child.id, unitList)],
     []
   );
 }
 
-// ── Helper: lấy chuỗi tổ tiên (breadcrumb) ──────────────────────────
-export function getAncestorChain(unitId: string): MilitaryUnit[] {
+// ── Helper: lấy chuỗi tổ tiên (breadcrumb) ────────────────────────────
+export function getAncestorChain(unitId: string, unitList: MilitaryUnit[] = ALL_UNITS): MilitaryUnit[] {
   const chain: MilitaryUnit[] = [];
-  let current = ALL_UNITS.find((u) => u.id === unitId);
-  while (current) {
+  let current = unitList.find((u) => u.id === unitId);
+  const visited = new Set<string>();
+  while (current && !visited.has(current.id)) {
+    visited.add(current.id);
     chain.unshift(current);
-    current = current.parentId ? ALL_UNITS.find((u) => u.id === current!.parentId) : undefined;
+    current = current.parentId ? unitList.find((u) => u.id === current!.parentId) : undefined;
   }
   return chain;
 }
 
-// ══════════════════════════════════════════════════════════════════════
-// BACKWARD COMPAT: MOCK_PLATOONS (map từ PLATOON_UNITS của C1)
-// ══════════════════════════════════════════════════════════════════════
-
-export const MOCK_PLATOONS: Platoon[] = PLATOON_UNITS
-  .filter((u) => u.parentId === 'C1')
-  .map((u, idx) => ({
-    id: u.id,
-    name: u.name,
-    code: u.code,
-    leaderName: u.leaderName,
-    totalSoldiers: u.totalSoldiers,
-  }));
-
-// ══════════════════════════════════════════════════════════════════════
-// TÀI KHOẢN MẪU (mở rộng phân cấp)
-// ══════════════════════════════════════════════════════════════════════
-
-export const MOCK_ACCOUNTS: UserAccount[] = [
-  {
-    id: 'u-trungdoan',
-    username: 'trungdoan',
-    name: 'Thượng tá NGUYỄN QUANG HUY',
-    rank: 'Thượng tá',
-    role: 'COMMANDER',
-    roleTitle: 'Trung đoàn trưởng',
-    phone: '0981000001',
-    avatarUrl: DEFAULT_AVATAR,
-    unitScopeTier: 'REGIMENT',
-    assignedUnitIds: ['e335'],
-    assignedUnitId: 'e335',
-  },
-  {
-    id: 'u-tieudoan',
-    username: 'tieudoan',
-    name: 'Thiếu tá TRẦN ĐẠI NGHĨA',
-    rank: 'Thiếu tá',
-    role: 'COMMANDER',
-    roleTitle: 'Tiểu đoàn trưởng',
-    phone: '0981000002',
-    avatarUrl: DEFAULT_AVATAR,
-    unitScopeTier: 'BATTALION',
-    assignedUnitIds: ['dBB4'],
-    assignedUnitId: 'dBB4',
-  },
-  {
-    id: 'u-chihuy',
-    username: 'chihuy',
-    name: 'Đại úy NGUYỄN THẾ ANH',
-    rank: 'Đại úy',
-    role: 'COMMANDER',
-    roleTitle: 'Đại đội trưởng',
-    phone: '0988123456',
-    avatarUrl: DEFAULT_AVATAR,
-    unitScopeTier: 'COMPANY',
-    assignedUnitIds: ['C1'],
-    assignedUnitId: 'C1',
-  },
-  {
-    id: 'u-chamdiem',
-    username: 'chamdiem',
-    name: 'Trung sĩ TRẦN VĂN BÌNH',
-    rank: 'Trung sĩ',
-    role: 'SCORER',
-    roleTitle: 'Trực ban Nội vụ / Tiểu đội trưởng',
-    platoonId: 'C1-B1',
-    phone: '0977654321',
-    avatarUrl: DEFAULT_AVATAR,
-    unitScopeTier: 'PLATOON',
-    assignedUnitIds: ['C1-B1'],
-    assignedUnitId: 'C1-B1',
-  },
-  {
-    id: 'u-quannhan',
-    username: 'quannhan',
-    name: 'Binh nhất TRỊNH QUỐC VIỆT',
-    rank: 'Binh nhất',
-    role: 'SOLDIER',
-    roleTitle: 'Chiến sĩ',
-    soldierId: 's1',
-    platoonId: 'C1-B1',
-    phone: '0394497***',
-    avatarUrl: DEFAULT_AVATAR,
-    unitScopeTier: 'SQUAD',
-    assignedUnitIds: ['C1-B1-A1'],
-    assignedUnitId: 'C1-B1-A1',
-  },
-];
-
-// ══════════════════════════════════════════════════════════════════════
-// DANH SÁCH QUÂN NHÂN MẪU
-// ══════════════════════════════════════════════════════════════════════
-// Chi tiết: Đại đội 1 (dBB4) — 3 Trung đội × 3 Tiểu đội
-//           Đại đội 18 Thông tin (cTT) — 3 Trung đội × 3 Tiểu đội
-
-export const MOCK_SOLDIERS: Soldier[] = [
-  // ──────────────────────────────────────────────────────────────────
-  // ĐẠI ĐỘI 1 / TIỂU ĐOÀN BB4
-  // ──────────────────────────────────────────────────────────────────
-
-  // ── C1-B1 (Trung đội 1) ── Tiểu đội 1 ──
-  { id: 's1', name: 'TRỊNH QUỐC VIỆT', dob: '17/04/2005', gender: 'Nam', rank: 'Binh nhất', roleTitle: 'Chiến sĩ', battalionId: 'dBB4', battalionName: 'Tiểu đoàn BB4', companyId: 'C1', companyName: 'Đại đội 1', platoonId: 'C1-B1', platoonName: 'Trung đội 1', squadId: 'C1-B1-A1', squadName: 'Tiểu đội 1', joinDate: '15/02/2023', officialDate: '18/06/2024', militaryCode: 'QN-040205009', idCardNumber: '040205009***', phone: '0394497***', hometown: 'Ý Yên, Nam Định', partyStatus: 'Đảng viên chính thức', partyJoinDate: '18/06/2023' },
-  { id: 's2', name: 'NGUYỄN VĂN ĐỨC', dob: '15/02/2004', gender: 'Nam', rank: 'Binh nhất', roleTitle: 'Chiến sĩ', battalionId: 'dBB4', battalionName: 'Tiểu đoàn BB4', companyId: 'C1', companyName: 'Đại đội 1', platoonId: 'C1-B1', platoonName: 'Trung đội 1', squadId: 'C1-B1-A1', squadName: 'Tiểu đội 1', joinDate: '15/02/2023', militaryCode: 'QN-038204011', idCardNumber: '038204011***', phone: '0912345***', hometown: 'Đông Hưng, Thái Bình', partyStatus: 'Đoàn viên' },
-  { id: 's4', name: 'TRẦN VĂN BÌNH', dob: '05/11/2003', gender: 'Nam', rank: 'Trung sĩ', roleTitle: 'Tiểu đội trưởng', battalionId: 'dBB4', battalionName: 'Tiểu đoàn BB4', companyId: 'C1', companyName: 'Đại đội 1', platoonId: 'C1-B1', platoonName: 'Trung đội 1', squadId: 'C1-B1-A1', squadName: 'Tiểu đội 1', joinDate: '15/02/2022', officialDate: '02/09/2023', militaryCode: 'QN-001203005', idCardNumber: '001203005***', phone: '0977654***', hometown: 'Gia Lâm, Hà Nội', partyStatus: 'Đảng viên chính thức', partyJoinDate: '02/09/2022' },
-
-  // ── C1-B1 ── Tiểu đội 2 ──
-  { id: 's3', name: 'LÊ VĂN THẮNG', dob: '22/09/2005', gender: 'Nam', rank: 'Binh nhì', roleTitle: 'Chiến sĩ', battalionId: 'dBB4', battalionName: 'Tiểu đoàn BB4', companyId: 'C1', companyName: 'Đại đội 1', platoonId: 'C1-B1', platoonName: 'Trung đội 1', squadId: 'C1-B1-A2', squadName: 'Tiểu đội 2', joinDate: '20/02/2024', militaryCode: 'QN-035205022', idCardNumber: '035205022***', phone: '0987654***', hometown: 'Kim Bảng, Hà Nam', partyStatus: 'Đoàn viên' },
-  { id: 's11', name: 'NGUYỄN VĂN HÒA', dob: '12/01/2004', gender: 'Nam', rank: 'Trung sĩ', roleTitle: 'Tiểu đội trưởng', battalionId: 'dBB4', battalionName: 'Tiểu đoàn BB4', companyId: 'C1', companyName: 'Đại đội 1', platoonId: 'C1-B1', platoonName: 'Trung đội 1', squadId: 'C1-B1-A2', squadName: 'Tiểu đội 2', joinDate: '15/02/2022', militaryCode: 'QN-036204015', idCardNumber: '036204015***', phone: '0923456***', hometown: 'Thanh Liêm, Hà Nam', partyStatus: 'Đoàn viên ưu tú' },
-
-  // ── C1-B1 ── Tiểu đội 3 ──
-  { id: 's12', name: 'ĐỖ VĂN HIỆP', dob: '08/07/2005', gender: 'Nam', rank: 'Binh nhì', roleTitle: 'Chiến sĩ', battalionId: 'dBB4', battalionName: 'Tiểu đoàn BB4', companyId: 'C1', companyName: 'Đại đội 1', platoonId: 'C1-B1', platoonName: 'Trung đội 1', squadId: 'C1-B1-A3', squadName: 'Tiểu đội 3', joinDate: '20/02/2024', militaryCode: 'QN-034205033', idCardNumber: '034205033***', phone: '0945678***', hometown: 'Quốc Oai, Hà Nội', partyStatus: 'Đoàn viên' },
-
-  // ── C1-B2 (Trung đội 2) ── Tiểu đội 1 ──
-  { id: 's5', name: 'HOÀNG MINH KHÔI', dob: '10/08/2004', gender: 'Nam', rank: 'Binh nhất', roleTitle: 'Chiến sĩ', battalionId: 'dBB4', battalionName: 'Tiểu đoàn BB4', companyId: 'C1', companyName: 'Đại đội 1', platoonId: 'C1-B2', platoonName: 'Trung đội 2', squadId: 'C1-B2-A1', squadName: 'Tiểu đội 1', joinDate: '15/02/2023', militaryCode: 'QN-026204018', idCardNumber: '026204018***', phone: '0934567***', hometown: 'Thủy Nguyên, Hải Phòng', partyStatus: 'Đoàn viên ưu tú' },
-  { id: 's7', name: 'PHẠM QUỐC HƯNG', dob: '14/06/2003', gender: 'Nam', rank: 'Hạ sĩ', roleTitle: 'Tiểu đội phó', battalionId: 'dBB4', battalionName: 'Tiểu đoàn BB4', companyId: 'C1', companyName: 'Đại đội 1', platoonId: 'C1-B2', platoonName: 'Trung đội 2', squadId: 'C1-B2-A1', squadName: 'Tiểu đội 1', joinDate: '15/02/2023', militaryCode: 'QN-033203044', idCardNumber: '033203044***', phone: '0981122***', hometown: 'Khoái Châu, Hưng Yên', partyStatus: 'Đoàn viên ưu tú' },
-
-  // ── C1-B2 ── Tiểu đội 2 ──
-  { id: 's6', name: 'ĐỖ TUẤN ANH', dob: '30/12/2005', gender: 'Nam', rank: 'Binh nhì', roleTitle: 'Chiến sĩ', battalionId: 'dBB4', battalionName: 'Tiểu đoàn BB4', companyId: 'C1', companyName: 'Đại đội 1', platoonId: 'C1-B2', platoonName: 'Trung đội 2', squadId: 'C1-B2-A2', squadName: 'Tiểu đội 2', joinDate: '20/02/2024', militaryCode: 'QN-031205099', idCardNumber: '031205099***', phone: '0961234***', hometown: 'Cẩm Giàng, Hải Dương', partyStatus: 'Đoàn viên' },
-
-  // ── C1-B2 ── Tiểu đội 3 ──
-  { id: 's13', name: 'TRẦN XUÂN NAM', dob: '03/03/2004', gender: 'Nam', rank: 'Hạ sĩ', roleTitle: 'Tiểu đội trưởng', battalionId: 'dBB4', battalionName: 'Tiểu đoàn BB4', companyId: 'C1', companyName: 'Đại đội 1', platoonId: 'C1-B2', platoonName: 'Trung đội 2', squadId: 'C1-B2-A3', squadName: 'Tiểu đội 3', joinDate: '15/02/2023', militaryCode: 'QN-027204007', idCardNumber: '027204007***', phone: '0956789***', hometown: 'An Dương, Hải Phòng', partyStatus: 'Đoàn viên' },
-
-  // ── C1-B3 (Trung đội 3) ── Tiểu đội 1 ──
-  { id: 's8', name: 'NGUYỄN VĂN A', dob: '08/03/2004', gender: 'Nam', rank: 'Binh nhất', roleTitle: 'Chiến sĩ', battalionId: 'dBB4', battalionName: 'Tiểu đoàn BB4', companyId: 'C1', companyName: 'Đại đội 1', platoonId: 'C1-B3', platoonName: 'Trung đội 3', squadId: 'C1-B3-A1', squadName: 'Tiểu đội 1', joinDate: '15/02/2023', militaryCode: 'QN-020204001', idCardNumber: '020204001***', phone: '0972233***', hometown: 'Việt Trì, Phú Thọ', partyStatus: 'Đoàn viên ưu tú' },
-  { id: 's10', name: 'BÙI QUANG HUY', dob: '25/01/2003', gender: 'Nam', rank: 'Hạ sĩ', roleTitle: 'Tiểu đội phó', battalionId: 'dBB4', battalionName: 'Tiểu đoàn BB4', companyId: 'C1', companyName: 'Đại đội 1', platoonId: 'C1-B3', platoonName: 'Trung đội 3', squadId: 'C1-B3-A1', squadName: 'Tiểu đội 1', joinDate: '15/02/2023', militaryCode: 'QN-024203055', idCardNumber: '024203055***', phone: '0915566***', hometown: 'Yên Phong, Bắc Ninh', partyStatus: 'Đoàn viên' },
-
-  // ── C1-B3 ── Tiểu đội 2 ──
-  { id: 's9', name: 'VŨ ĐỨC MẠNH', dob: '19/07/2005', gender: 'Nam', rank: 'Binh nhì', roleTitle: 'Chiến sĩ', battalionId: 'dBB4', battalionName: 'Tiểu đoàn BB4', companyId: 'C1', companyName: 'Đại đội 1', platoonId: 'C1-B3', platoonName: 'Trung đội 3', squadId: 'C1-B3-A2', squadName: 'Tiểu đội 2', joinDate: '20/02/2024', militaryCode: 'QN-019205077', idCardNumber: '019205077***', phone: '0943344***', hometown: 'Sông Lô, Vĩnh Phúc', partyStatus: 'Đoàn viên' },
-
-  // ── C1-B3 ── Tiểu đội 3 ──
-  { id: 's14', name: 'NGÔ VĂN THẮNG', dob: '11/11/2004', gender: 'Nam', rank: 'Trung sĩ', roleTitle: 'Tiểu đội trưởng', battalionId: 'dBB4', battalionName: 'Tiểu đoàn BB4', companyId: 'C1', companyName: 'Đại đội 1', platoonId: 'C1-B3', platoonName: 'Trung đội 3', squadId: 'C1-B3-A3', squadName: 'Tiểu đội 3', joinDate: '15/02/2022', militaryCode: 'QN-030204066', idCardNumber: '030204066***', phone: '0967890***', hometown: 'Đan Phượng, Hà Nội', partyStatus: 'Đoàn viên ưu tú' },
-
-  // ──────────────────────────────────────────────────────────────────
-  // ĐẠI ĐỘI 18 THÔNG TIN / KHỐI TRỰC THUỘC
-  // ──────────────────────────────────────────────────────────────────
-
-  // ── C18-B1 (Trung đội 1) ── Tiểu đội 1 ──
-  { id: 's20', name: 'PHẠM HỒNG QUÂN', dob: '20/05/2003', gender: 'Nam', rank: 'Trung sĩ', roleTitle: 'Tiểu đội trưởng', battalionId: 'cTT', battalionName: 'Khối Trực thuộc', companyId: 'C18', companyName: 'Đại đội Thông tin', platoonId: 'C18-B1', platoonName: 'Trung đội 1', squadId: 'C18-B1-A1', squadName: 'Tiểu đội 1', joinDate: '15/02/2022', militaryCode: 'QN-001203101', idCardNumber: '001203101***', phone: '0981001***', hometown: 'Hoàn Kiếm, Hà Nội', partyStatus: 'Đảng viên chính thức', partyJoinDate: '15/09/2023' },
-  { id: 's21', name: 'LÊ VĂN QUANG', dob: '14/08/2005', gender: 'Nam', rank: 'Binh nhì', roleTitle: 'Chiến sĩ', battalionId: 'cTT', battalionName: 'Khối Trực thuộc', companyId: 'C18', companyName: 'Đại đội Thông tin', platoonId: 'C18-B1', platoonName: 'Trung đội 1', squadId: 'C18-B1-A1', squadName: 'Tiểu đội 1', joinDate: '20/02/2024', militaryCode: 'QN-038205102', idCardNumber: '038205102***', phone: '0982002***', hometown: 'Hà Đông, Hà Nội', partyStatus: 'Đoàn viên' },
-  { id: 's22', name: 'TRẦN QUỐC THỊNH', dob: '01/12/2004', gender: 'Nam', rank: 'Binh nhất', roleTitle: 'Chiến sĩ', battalionId: 'cTT', battalionName: 'Khối Trực thuộc', companyId: 'C18', companyName: 'Đại đội Thông tin', platoonId: 'C18-B1', platoonName: 'Trung đội 1', squadId: 'C18-B1-A1', squadName: 'Tiểu đội 1', joinDate: '15/02/2023', militaryCode: 'QN-025204103', idCardNumber: '025204103***', phone: '0983003***', hometown: 'Từ Liêm, Hà Nội', partyStatus: 'Đoàn viên ưu tú' },
-
-  // ── C18-B1 ── Tiểu đội 2 ──
-  { id: 's23', name: 'NGUYỄN BÁ ĐỨC', dob: '28/06/2003', gender: 'Nam', rank: 'Hạ sĩ', roleTitle: 'Tiểu đội trưởng', battalionId: 'cTT', battalionName: 'Khối Trực thuộc', companyId: 'C18', companyName: 'Đại đội Thông tin', platoonId: 'C18-B1', platoonName: 'Trung đội 1', squadId: 'C18-B1-A2', squadName: 'Tiểu đội 2', joinDate: '15/02/2023', militaryCode: 'QN-001203104', idCardNumber: '001203104***', phone: '0984004***', hometown: 'Long Biên, Hà Nội', partyStatus: 'Đoàn viên' },
-  { id: 's24', name: 'VŨ HỒNG NAM', dob: '05/03/2005', gender: 'Nam', rank: 'Binh nhì', roleTitle: 'Chiến sĩ', battalionId: 'cTT', battalionName: 'Khối Trực thuộc', companyId: 'C18', companyName: 'Đại đội Thông tin', platoonId: 'C18-B1', platoonName: 'Trung đội 1', squadId: 'C18-B1-A2', squadName: 'Tiểu đội 2', joinDate: '20/02/2024', militaryCode: 'QN-019205105', idCardNumber: '019205105***', phone: '0985005***', hometown: 'Tam Đảo, Vĩnh Phúc', partyStatus: 'Đoàn viên' },
-
-  // ── C18-B1 ── Tiểu đội 3 ──
-  { id: 's25', name: 'LÊ ĐỨC MINH', dob: '22/09/2004', gender: 'Nam', rank: 'Hạ sĩ', roleTitle: 'Tiểu đội trưởng', battalionId: 'cTT', battalionName: 'Khối Trực thuộc', companyId: 'C18', companyName: 'Đại đội Thông tin', platoonId: 'C18-B1', platoonName: 'Trung đội 1', squadId: 'C18-B1-A3', squadName: 'Tiểu đội 3', joinDate: '15/02/2023', militaryCode: 'QN-034204106', idCardNumber: '034204106***', phone: '0986006***', hometown: 'Ninh Bình', partyStatus: 'Đoàn viên ưu tú' },
-
-  // ── C18-B2 (Trung đội 2) ── Tiểu đội 1 ──
-  { id: 's26', name: 'HOÀNG VĂN ĐẠT', dob: '17/02/2003', gender: 'Nam', rank: 'Trung sĩ', roleTitle: 'Tiểu đội trưởng', battalionId: 'cTT', battalionName: 'Khối Trực thuộc', companyId: 'C18', companyName: 'Đại đội Thông tin', platoonId: 'C18-B2', platoonName: 'Trung đội 2', squadId: 'C18-B2-A1', squadName: 'Tiểu đội 1', joinDate: '15/02/2022', militaryCode: 'QN-036203107', idCardNumber: '036203107***', phone: '0987007***', hometown: 'Bắc Giang', partyStatus: 'Đảng viên chính thức', partyJoinDate: '01/10/2023' },
-  { id: 's27', name: 'ĐẶNG TRỌNG HIẾU', dob: '30/10/2005', gender: 'Nam', rank: 'Binh nhì', roleTitle: 'Chiến sĩ', battalionId: 'cTT', battalionName: 'Khối Trực thuộc', companyId: 'C18', companyName: 'Đại đội Thông tin', platoonId: 'C18-B2', platoonName: 'Trung đội 2', squadId: 'C18-B2-A1', squadName: 'Tiểu đội 1', joinDate: '20/02/2024', militaryCode: 'QN-024205108', idCardNumber: '024205108***', phone: '0988008***', hometown: 'Bắc Ninh', partyStatus: 'Đoàn viên' },
-
-  // ── C18-B2 ── Tiểu đội 2 ──
-  { id: 's28', name: 'TRẦN THẾ LONG', dob: '09/04/2004', gender: 'Nam', rank: 'Hạ sĩ', roleTitle: 'Tiểu đội trưởng', battalionId: 'cTT', battalionName: 'Khối Trực thuộc', companyId: 'C18', companyName: 'Đại đội Thông tin', platoonId: 'C18-B2', platoonName: 'Trung đội 2', squadId: 'C18-B2-A2', squadName: 'Tiểu đội 2', joinDate: '15/02/2023', militaryCode: 'QN-038204109', idCardNumber: '038204109***', phone: '0989009***', hometown: 'Thái Nguyên', partyStatus: 'Đoàn viên' },
-
-  // ── C18-B2 ── Tiểu đội 3 ──
-  { id: 's29', name: 'VŨ MINH ĐỨC', dob: '15/11/2004', gender: 'Nam', rank: 'Hạ sĩ', roleTitle: 'Tiểu đội trưởng', battalionId: 'cTT', battalionName: 'Khối Trực thuộc', companyId: 'C18', companyName: 'Đại đội Thông tin', platoonId: 'C18-B2', platoonName: 'Trung đội 2', squadId: 'C18-B2-A3', squadName: 'Tiểu đội 3', joinDate: '15/02/2023', militaryCode: 'QN-020204110', idCardNumber: '020204110***', phone: '0990010***', hometown: 'Phú Thọ', partyStatus: 'Đoàn viên ưu tú' },
-
-  // ── C18-B3 (Trung đội 3) ── Tiểu đội 1 ──
-  { id: 's30', name: 'ĐẶNG NGỌC HÀ', dob: '02/08/2003', gender: 'Nam', rank: 'Trung sĩ', roleTitle: 'Tiểu đội trưởng', battalionId: 'cTT', battalionName: 'Khối Trực thuộc', companyId: 'C18', companyName: 'Đại đội Thông tin', platoonId: 'C18-B3', platoonName: 'Trung đội 3', squadId: 'C18-B3-A1', squadName: 'Tiểu đội 1', joinDate: '15/02/2022', militaryCode: 'QN-035203111', idCardNumber: '035203111***', phone: '0991011***', hometown: 'Hà Nam', partyStatus: 'Đoàn viên' },
-  { id: 's31', name: 'NGUYỄN TIẾN DŨNG', dob: '18/01/2005', gender: 'Nam', rank: 'Binh nhì', roleTitle: 'Chiến sĩ', battalionId: 'cTT', battalionName: 'Khối Trực thuộc', companyId: 'C18', companyName: 'Đại đội Thông tin', platoonId: 'C18-B3', platoonName: 'Trung đội 3', squadId: 'C18-B3-A1', squadName: 'Tiểu đội 1', joinDate: '20/02/2024', militaryCode: 'QN-033205112', idCardNumber: '033205112***', phone: '0992012***', hometown: 'Hưng Yên', partyStatus: 'Đoàn viên' },
-
-  // ── C18-B3 ── Tiểu đội 2 ──
-  { id: 's32', name: 'BÙI VĂN ĐÔNG', dob: '26/06/2004', gender: 'Nam', rank: 'Hạ sĩ', roleTitle: 'Tiểu đội trưởng', battalionId: 'cTT', battalionName: 'Khối Trực thuộc', companyId: 'C18', companyName: 'Đại đội Thông tin', platoonId: 'C18-B3', platoonName: 'Trung đội 3', squadId: 'C18-B3-A2', squadName: 'Tiểu đội 2', joinDate: '15/02/2023', militaryCode: 'QN-031204113', idCardNumber: '031204113***', phone: '0993013***', hometown: 'Hải Dương', partyStatus: 'Đoàn viên' },
-
-  // ── C18-B3 ── Tiểu đội 3 ──
-  { id: 's33', name: 'PHAN TRỌNG NGHĨA', dob: '10/10/2004', gender: 'Nam', rank: 'Hạ sĩ', roleTitle: 'Tiểu đội trưởng', battalionId: 'cTT', battalionName: 'Khối Trực thuộc', companyId: 'C18', companyName: 'Đại đội Thông tin', platoonId: 'C18-B3', platoonName: 'Trung đội 3', squadId: 'C18-B3-A3', squadName: 'Tiểu đội 3', joinDate: '15/02/2023', militaryCode: 'QN-026204114', idCardNumber: '026204114***', phone: '0994014***', hometown: 'Hải Phòng', partyStatus: 'Đoàn viên' },
-].map((s) => ({ ...s, avatarUrl: DEFAULT_AVATAR }));
-
-// ══════════════════════════════════════════════════════════════════════
-// DỮ LIỆU TRỐNG & TIỆN ÍCH
-// ══════════════════════════════════════════════════════════════════════
-
-export const TODAY_DATE = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' }).format(new Date());
-
-// Bắt đầu từ trạng thái trống — dữ liệu được nhập vào qua giao diện và lưu vào LocalStorage.
-export const MOCK_DAILY_SCORES: DailyScore[] = [];
-
-export const MOCK_COMMENDATIONS: CommendationItem[] = [];
-
+// Danh mục gợi ý nhanh quy định trừ/cộng điểm khi nhập sổ điểm hàng ngày
 export const QUICK_VIOLATION_PRESETS = [
   {
     id: 'nv-1',
@@ -456,149 +126,3 @@ export const QUICK_VIOLATION_PRESETS = [
     points: -5,
   },
 ];
-
-// ══════════════════════════════════════════════════════════════════════
-// TÀI KHOẢN MẪU PHÂN QUYỀN 3 ROLE (MOCK USERS)
-// ══════════════════════════════════════════════════════════════════════
-
-export const mockUsers: UserAccount[] = [
-  {
-    id: 'u1',
-    username: 'admin',
-    role: 'ADMIN',
-    name: 'Nguyễn Văn Quân',
-    roleTitle: 'Trung đoàn trưởng / Quản trị viên',
-    rank: 'Thượng tá',
-    assignedUnitIds: ['e335'],
-    assignedUnitId: 'e335',
-    status: 'ACTIVE',
-    avatarUrl: DEFAULT_AVATAR,
-  },
-  {
-    id: 'u_scorer_c1',
-    username: 'scorer_c1',
-    role: 'SCORER',
-    name: 'Lê Văn Nam',
-    roleTitle: 'Đại đội trưởng C1',
-    rank: 'Đại úy',
-    assignedUnitIds: ['C1', 'C1-B1', 'C1-B2', 'C1-B3'],
-    assignedUnitId: 'C1',
-    status: 'ACTIVE',
-    avatarUrl: DEFAULT_AVATAR,
-  },
-  {
-    id: 'u3',
-    username: 'thang_b1',
-    role: 'SCORER',
-    name: 'Nguyễn Văn Thắng',
-    roleTitle: 'Trung đội trưởng B1',
-    rank: 'Trung úy',
-    assignedUnitIds: ['C1-B1'],
-    assignedUnitId: 'C1-B1',
-    platoonId: 'C1-B1',
-    status: 'ACTIVE',
-    avatarUrl: DEFAULT_AVATAR,
-  },
-  {
-    id: 'u4',
-    username: 'quannhan',
-    role: 'SOLDIER',
-    name: 'Trịnh Quốc Việt',
-    roleTitle: 'Chiến sĩ',
-    rank: 'Binh nhất',
-    soldierId: 's1',
-    assignedUnitIds: ['C1-B1-A1'],
-    assignedUnitId: 'C1-B1-A1',
-    platoonId: 'C1-B1',
-    status: 'ACTIVE',
-    avatarUrl: DEFAULT_AVATAR,
-  },
-  {
-    id: 'u_soldier_a',
-    username: 'soldier_a',
-    role: 'SOLDIER',
-    name: 'Trịnh Quốc Việt',
-    roleTitle: 'Chiến sĩ',
-    rank: 'Binh nhất',
-    soldierId: 's1',
-    assignedUnitIds: ['C1-B1-A1'],
-    assignedUnitId: 'C1-B1-A1',
-    platoonId: 'C1-B1',
-    status: 'ACTIVE',
-    avatarUrl: DEFAULT_AVATAR,
-  },
-  {
-    id: 'u2',
-    username: 'user_demo',
-    role: 'SOLDIER',
-    name: 'Nguyễn Văn Đức',
-    roleTitle: 'Chiến sĩ thi đua',
-    rank: 'Binh nhì',
-    soldierId: 's2',
-    assignedUnitIds: ['C1-B1-A1'],
-    assignedUnitId: 'C1-B1-A1',
-    platoonId: 'C1-B1',
-    status: 'ACTIVE',
-    avatarUrl: DEFAULT_AVATAR,
-  },
-];
-
-export const MOCK_USERS = mockUsers;
-
-// ══════════════════════════════════════════════════════════════════════
-// DỮ LIỆU KHIẾU NẠI THI ĐUA MẪU (MOCK APPEALS)
-// ══════════════════════════════════════════════════════════════════════
-
-export const mockAppeals: EmulationAppeal[] = [
-  {
-    id: 'appeal-1',
-    soldierId: 's1',
-    soldierName: 'Trịnh Quốc Việt',
-    unitId: 'C1-B1-A1',
-    unitName: 'Tiểu đội 1 (Trung đội 1 - Đại đội 1)',
-    date: TODAY_DATE,
-    criterionId: 'c_hygiene',
-    criterionName: 'Nội vụ, vệ sinh & Thể lực',
-    deductionPoints: 5,
-    reason: 'Báo cáo đồng chí chỉ huy, hôm qua tôi đi trực gác ca 3h-5h sáng về muộn nên chăn màn xếp sau giờ báo thức 10 phút, không phải cố ý vi phạm nội vụ.',
-    status: 'PENDING',
-    createdAt: '2026-10-01T08:30:00.000Z',
-  },
-  {
-    id: 'appeal-2',
-    soldierId: 's2',
-    soldierName: 'Nguyễn Văn Đức',
-    unitId: 'C1-B1-A1',
-    unitName: 'Tiểu đội 1 (Trung đội 1 - Đại đội 1)',
-    date: '2026-09-30',
-    criterionId: 'c_task',
-    criterionName: 'Huấn luyện & Thực hiện nhiệm vụ',
-    deductionPoints: 10,
-    reason: 'Báo cáo chỉ huy, nội dung kiểm tra bắn súng tôi đạt điểm Giỏi nhưng bị ghi nhầm mã số sang đồng chí khác dẫn đến bị trừ điểm nhiệm vụ.',
-    status: 'APPROVED',
-    createdAt: '2026-09-30T17:15:00.000Z',
-    resolvedAt: '2026-09-30T19:30:00.000Z',
-    resolvedBy: 'Nguyễn Văn Thắng',
-    reply: 'Đã đối soát lại biên bản kiểm tra bắn súng của Đại đội 1, xác nhận đồng chí Đức đạt Giỏi. Đồng ý hoàn lại 10 điểm thi đua.',
-  },
-  {
-    id: 'appeal-3',
-    soldierId: 's3',
-    soldierName: 'Lê Văn Cường',
-    unitId: 'C1-B1-A1',
-    unitName: 'Tiểu đội 1 (Trung đội 1 - Đại đội 1)',
-    date: '2026-09-29',
-    criterionId: 'c_bearing',
-    criterionName: 'Lễ tiết tác phong & Chấp hành kỷ luật',
-    deductionPoints: 5,
-    reason: 'Báo cáo chỉ huy, hôm qua tôi chào chỉ huy khi đang mang vác nặng nên chỉ đứng nghiêm chào bằng mắt, xin miễn trừ điểm.',
-    status: 'REJECTED',
-    createdAt: '2026-09-29T18:00:00.000Z',
-    resolvedAt: '2026-09-29T20:00:00.000Z',
-    resolvedBy: 'Lê Văn Nam',
-    reply: 'Theo điều lệnh quản lý bộ đội, khi mang vác vật nặng quân nhân vẫn phải xưng hô chào hỏi đúng quy định. Nhắc nhở đồng chí rút kinh nghiệm, giữ nguyên điểm trừ.',
-  },
-];
-
-export const MOCK_APPEALS = mockAppeals;
-

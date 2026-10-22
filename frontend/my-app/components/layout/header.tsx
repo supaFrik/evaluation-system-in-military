@@ -2,7 +2,7 @@
 
 import React from 'react';
 import Image from 'next/image';
-import { UserAccount } from '@/lib/types';
+import { MilitaryUnit, UserAccount } from '@/lib/types';
 import { LogOut, Menu, ChevronDown, User, BookOpen, ArrowLeftRight } from 'lucide-react';
 import {
   DropdownMenu,
@@ -13,10 +13,10 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { NavTabId } from '@/components/layout/sidebar';
-import { ALL_UNITS } from '@/lib/mock-data';
 
 interface HeaderProps {
   currentUser: UserAccount | null;
+  units?: MilitaryUnit[];
   onLogout: () => void;
   onOpenLogin: () => void;
   onToggleSidebar?: () => void;
@@ -25,6 +25,7 @@ interface HeaderProps {
 
 export function Header({
   currentUser,
+  units = [],
   onLogout,
   onOpenLogin,
   onToggleSidebar,
@@ -32,14 +33,14 @@ export function Header({
 }: HeaderProps) {
   const userUnitName = React.useMemo(() => {
     if (!currentUser?.assignedUnitId) return 'Trung đoàn Bộ Binh 335';
-    const match = ALL_UNITS.find((u) => u.id === currentUser.assignedUnitId);
+    const match = units.find((u) => u.id === currentUser.assignedUnitId);
     if (match) return match.name;
     if (currentUser.platoonId) {
-      const pMatch = ALL_UNITS.find((u) => u.id === currentUser.platoonId);
+      const pMatch = units.find((u) => u.id === currentUser.platoonId);
       if (pMatch) return pMatch.name;
     }
     return 'Trung đoàn Bộ Binh 335';
-  }, [currentUser]);
+  }, [currentUser, units]);
 
   const displayName = currentUser
     ? currentUser.rank && !currentUser.name.toLowerCase().startsWith(currentUser.rank.toLowerCase())
