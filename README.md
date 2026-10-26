@@ -61,59 +61,69 @@ Router Guard áp dụng 2 tầng: Client-side redirect tại `frontend/my-app/ap
 
 ## Giao diện
 
-### 1. Bảng theo dõi thi đua phân đội
+### 1. Đăng nhập
+![Đăng nhập](docs/screenshots/00_login.png)
+Giao diện xác thực tài khoản qua tên đăng nhập, email hoặc số điện thoại kèm mật khẩu, hỗ trợ tùy chọn lưu phiên đăng nhập trên thiết bị.
+
+---
+
+### 2. Đăng ký
+![Đăng ký](docs/screenshots/00_signup.png)
+Form tạo mới tài khoản cho quân nhân với tùy chọn đăng ký qua email hoặc số điện thoại, tích hợp bước gửi và xác thực mã OTP để kích hoạt tài khoản.
+
+---
+
+### 3. Bảng theo dõi thi đua phân đội
 ![Bảng theo dõi thi đua phân đội](docs/screenshots/01_dashboard.png)
-- **Mục đích**: Theo dõi điểm thi đua, xu hướng và xếp hạng phân đội.
-- **Thao tác**: Lọc theo ngày, tuần, tháng; xem tỷ lệ kỷ luật và điểm trung bình.
+Bảng tổng hợp điểm thi đua, xu hướng và xếp hạng theo mốc thời gian ngày, tuần hoặc tháng, hiển thị tỷ lệ chấp hành nề nếp và điểm trung bình của từng phân đội.
 
 ---
 
-### 2. Cây đơn vị & Phân quyền cán bộ chấm điểm
+### 4. Cây đơn vị & Phân quyền cán bộ chấm điểm
 ![Cây đơn vị quân đội](docs/screenshots/02_unit_treeview.png)
-- **Mục đích**: Quản lý cơ cấu đơn vị và phân quyền chấm điểm theo phân đội.
-- **Thao tác**: Thêm hoặc sửa đơn vị, gán cán bộ chấm điểm cho đơn vị.
+Sơ đồ quản lý phân cấp cơ cấu đơn vị và gán quyền cán bộ chấm điểm trực tiếp cho từng phân đội trực thuộc ngay trên cây tổ chức.
 
 ---
 
-### 3. Sổ nhập điểm thi đua hằng ngày
+### 5. Sổ nhập điểm thi đua hằng ngày
 ![Nhập điểm thi đua hằng ngày](docs/screenshots/03_daily_scoring.png)
-- **Mục đích**: Nhập và lưu điểm thi đua hằng ngày theo tiêu chí.
-- **Thao tác**: Chọn phân đội, chọn lỗi vi phạm hoặc điểm cộng, nhập ghi chú và lưu.
+Bảng chấm điểm thi đua hằng ngày theo phân đội, hỗ trợ chọn lỗi vi phạm hoặc điểm cộng rèn luyện theo danh mục tiêu chí quy định và lưu trữ vào hệ thống.
 
 ---
 
-### 4. Kết quả thi đua quân nhân cá nhân
+### 6. Kết quả thi đua cá nhân
 ![Kết quả thi đua cá nhân](docs/screenshots/04_individual_emulation.png)
-- **Mục đích**: Quân nhân tra cứu kết quả thi đua và lịch sử điểm số.
-- **Thao tác**: Xem điểm tích lũy, chi tiết cộng trừ điểm và xếp loại.
+Màn hình tra cứu kết quả thi đua, hiển thị tổng điểm tích lũy, chi tiết các lần cộng trừ điểm trong ngày và xếp loại định kỳ.
 
 ---
 
-### 5. Quản lý & Giải quyết khiếu nại thi đua
+### 7. Trang cá nhân
+![Trang cá nhân](docs/screenshots/09_soldier_profile.jpg)
+Hồ sơ hiển thị lý lịch trích ngang, cấp bậc, chức vụ, đơn vị biên chế, tổng điểm thi đua và lịch sử biểu dương khen thưởng trong thời gian tại ngũ.
+
+---
+
+### 8. Quản lý & Giải quyết khiếu nại thi đua
 ![Xử lý khiếu nại thi đua](docs/screenshots/05_appeal_management.png)
-- **Mục đích**: Tiếp nhận và xử lý giải trình, khiếu nại điểm trừ.
-- **Thao tác**: Quân nhân gửi khiếu nại; cán bộ duyệt hoàn điểm hoặc từ chối.
+Kênh tiếp nhận và giải quyết khiếu nại hai chiều, cho phép quân nhân gửi văn bản giải trình điểm trừ và cán bộ phụ trách xem xét phản hồi, duyệt hoàn điểm.
 
 ---
 
-### 6. Quy chế & Cẩm nang tiêu chí chấm điểm
+### 9. Quy chế & Cẩm nang tiêu chí chấm điểm
 ![Quy chế chấm điểm](docs/screenshots/06_criteria_handbook.png)
-- **Mục đích**: Danh mục tiêu chuẩn đánh giá và thang điểm.
-- **Thao tác**: Tra cứu tiêu chí; thêm hoặc sửa mức điểm.
+Cẩm nang quy chuẩn toàn bộ tiêu chuẩn đánh giá thi đua, thang điểm quy định cho từng nhóm nội dung rèn luyện và hỗ trợ cập nhật mức điểm theo quy định.
 
 ---
 
-### 7. Biểu dương & Nhắc nhở kỷ luật
+### 10. Biểu dương & Nhắc nhở kỷ luật
 ![Biểu dương & Nhắc nhở](docs/screenshots/07_commendation_section.png)
-- **Mục đích**: Bảng tin biểu dương tập thể, cá nhân và thông báo nhắc nhở.
-- **Thao tác**: Đăng tin biểu dương hoặc nhắc nhở kèm nội dung và đơn vị.
+Bảng tin vinh danh các cá nhân, tập thể đạt thành tích tiêu biểu trong tuần, đồng thời thông báo chấn chỉnh các trường hợp vi phạm nề nếp cần rút kinh nghiệm.
 
 ---
 
-### 8. Danh sách & Hồ sơ quân nhân
+### 11. Danh sách & Hồ sơ quân nhân
 ![Danh sách quân nhân](docs/screenshots/08_soldier_list.png)
-- **Mục đích**: Quản lý thông tin hồ sơ và biên chế quân nhân.
-- **Thao tác**: Tìm kiếm, lọc theo cấp bậc, chức vụ, đơn vị; xem lý lịch.
+Danh sách quản lý dữ liệu quân nhân trong toàn đơn vị, hỗ trợ tìm kiếm và lọc theo họ tên, cấp bậc, chức vụ hoặc đơn vị trực thuộc.
 
 ---
 

@@ -48,8 +48,8 @@ export default function LoginClientPage() {
       const authData = await authService.login(loginIdentifier, password);
 
       notify.success(
-        'Đăng nhập thành công!',
-        `Xin chào ${authData.user.name} — ${authData.user.roleTitle || authData.user.role}`
+        'Đăng nhập thành công',
+        `Xin chào ${authData.user.name}`
       );
       setTimeout(() => {
         const search = typeof window !== 'undefined' ? window.location.search : '';
@@ -66,7 +66,7 @@ export default function LoginClientPage() {
       <div className="relative min-h-[100dvh] w-full flex items-center justify-center p-4 bg-white">
         <div className="text-center space-y-3 z-10">
           <div className="animate-spin h-8 w-8 border-3 border-red-700 border-t-transparent rounded-full mx-auto" />
-          <p className="text-xs font-semibold text-zinc-600">Đang kiểm tra phiên đăng nhập...</p>
+          <p className="text-xs font-semibold text-zinc-600">Đang kiểm tra đăng nhập...</p>
         </div>
       </div>
     );
@@ -107,7 +107,7 @@ export default function LoginClientPage() {
             />
           </div>
           <h1 className="text-xl sm:text-2xl font-black uppercase tracking-wider text-[#c00000] drop-shadow-xs leading-tight">
-            SƯ ĐOÀN BỘ BINH 324 - TRUNG ĐOÀN BỘ BINH 335
+            SƯ ĐOÀN 324 - TRUNG ĐOÀN 335
           </h1>
         </div>
 

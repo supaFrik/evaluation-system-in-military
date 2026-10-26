@@ -61,7 +61,7 @@ export function SignupForm({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) {
-      notify.error("Lỗi", "Vui lòng nhập Họ và tên");
+      notify.error("Lỗi", "Vui lòng nhập họ và tên");
       return;
     }
     if (password.length < 6) {
@@ -74,7 +74,7 @@ export function SignupForm({
     }
 
     if (method === "email" && !email.trim()) {
-      notify.error("Lỗi", "Vui lòng nhập địa chỉ Gmail");
+      notify.error("Lỗi", "Vui lòng nhập email");
       return;
     }
     if (method === "phone" && !phone.trim()) {
@@ -96,12 +96,9 @@ export function SignupForm({
       if (method === "email") {
         setRegisteredEmail(email.trim());
         setIsOtpStep(true);
-        notify.success(
-          "Đăng ký bước 1 thành công!",
-          "Mã OTP đã được gửi đến Gmail của bạn. Vui lòng kiểm tra hộp thư để kích hoạt tài khoản."
-        );
+        notify.success("Đã gửi mã OTP", "Vui lòng kiểm tra email để xác thực tài khoản.");
       } else {
-        notify.success("Đăng ký thành công!", "Tài khoản của bạn đã được khởi tạo.");
+        notify.success("Đăng ký thành công", "");
         // Đăng nhập tự động với SĐT
         if (onSuccess) {
           onSuccess({ email: phone.trim(), password });
@@ -110,7 +107,7 @@ export function SignupForm({
         }
       }
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Không thể đăng ký tài khoản";
+      const message = err instanceof Error ? err.message : "Đăng ký không thành công";
       notify.error("Đăng ký thất bại", message);
     } finally {
       setIsLoading(false);
@@ -120,7 +117,7 @@ export function SignupForm({
   const handleVerifyOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!otpCode.trim()) {
-      notify.error("Lỗi", "Vui lòng nhập mã OTP 6 số");
+      notify.error("Lỗi", "Vui lòng nhập mã OTP");
       return;
     }
 
@@ -131,10 +128,7 @@ export function SignupForm({
         otpCode: otpCode.trim(),
       });
 
-      notify.success(
-        "Kích hoạt thành công!",
-        `Xin chào ${authData.user.name}. Tài khoản của bạn đã sẵn sàng.`
-      );
+      notify.success("Xác thực thành công", `Xin chào ${authData.user.name}`);
 
       setTimeout(() => {
         const search = typeof window !== 'undefined' ? window.location.search : '';
@@ -142,7 +136,7 @@ export function SignupForm({
       }, 500);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Mã OTP không đúng hoặc đã hết hạn";
-      notify.error("Xác thực OTP thất bại", message);
+      notify.error("Xác thực thất bại", message);
     } finally {
       setIsVerifying(false);
     }
@@ -152,7 +146,7 @@ export function SignupForm({
     setIsResending(true);
     try {
       await authService.resendOtp({ identifier: registeredEmail });
-      notify.success("Đã gửi lại OTP", "Mã xác thực mới đã được gửi tới Gmail của bạn.");
+      notify.success("Đã gửi lại OTP", "Mã xác thực mới đã được gửi tới email của bạn.");
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Không thể gửi lại mã OTP";
       notify.error("Lỗi gửi lại OTP", message);
@@ -171,18 +165,17 @@ export function SignupForm({
               <ShieldCheck className="h-6 w-6" />
             </div>
             <h2 className="text-lg font-bold text-zinc-900 uppercase tracking-tight">
-              Xác thực mã OTP
+              Xác thực OTP
             </h2>
             <p className="text-xs text-zinc-500">
-              Nhập mã gồm 6 chữ số đã gửi về Gmail: <br />
-              <strong className="text-zinc-800">{registeredEmail}</strong>
+              Mã xác thực đã gửi tới <strong className="text-zinc-800">{registeredEmail}</strong>
             </p>
           </div>
 
           <form onSubmit={handleVerifyOtp} className="space-y-3.5 text-xs">
             <div>
               <Label htmlFor="otp-input" className="font-semibold text-zinc-700">
-                Mã xác thực OTP <span className="text-[#b91c1c]">*</span>
+                Mã OTP <span className="text-[#b91c1c]">*</span>
               </Label>
               <Input
                 id="otp-input"
@@ -201,7 +194,7 @@ export function SignupForm({
               disabled={isVerifying}
               className="w-full min-h-[44px] bg-[#b91c1c] hover:bg-[#991b1b] text-white font-semibold text-xs py-2.5 rounded-[3px] shadow-xs transition-colors cursor-pointer"
             >
-              {isVerifying ? "Đang xác thực..." : "Kích hoạt tài khoản & Đăng nhập"}
+              {isVerifying ? "Đang xác thực..." : "Xác thực"}
             </Button>
 
             <div className="flex items-center justify-between text-xs pt-1 border-t border-zinc-100">
@@ -212,7 +205,7 @@ export function SignupForm({
                 className="inline-flex items-center gap-1 text-[#b91c1c] hover:underline cursor-pointer"
               >
                 <RefreshCw size={13} className={isResending ? "animate-spin" : ""} />
-                <span>Gửi lại mã OTP</span>
+                <span>Gửi lại mã</span>
               </button>
 
               <button
@@ -234,9 +227,8 @@ export function SignupForm({
       <div className="mx-auto w-full max-w-sm space-y-4 rounded-[4px] border border-zinc-300 bg-white p-6 shadow-xs">
         <div className="text-center space-y-1">
           <h2 className="text-lg font-bold text-zinc-900 uppercase tracking-tight">
-            Đăng ký tài khoản quân nhân
+            Đăng ký
           </h2>
-          <p className="text-xs text-zinc-500">Quyền USER: Đăng ký qua Gmail hoặc Số điện thoại</p>
         </div>
 
         {/* Tab chuyển đổi hình thức đăng ký */}
@@ -251,7 +243,7 @@ export function SignupForm({
             }`}
           >
             <Mail size={14} />
-            <span>Qua Gmail</span>
+            <span>Email</span>
           </button>
           <button
             type="button"
@@ -263,14 +255,14 @@ export function SignupForm({
             }`}
           >
             <Phone size={14} />
-            <span>Qua Số ĐT</span>
+            <span>Số điện thoại</span>
           </button>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-3 text-xs">
           <div>
             <Label htmlFor="signup-name" className="font-semibold text-zinc-700">
-              Họ và tên quân nhân <span className="text-[#b91c1c]">*</span>
+              Họ và tên <span className="text-[#b91c1c]">*</span>
             </Label>
             <Input
               id="signup-name"
@@ -285,7 +277,7 @@ export function SignupForm({
           {method === "email" ? (
             <div>
               <Label htmlFor="signup-email" className="font-semibold text-zinc-700">
-                Địa chỉ Gmail <span className="text-[#b91c1c]">*</span>
+                Email <span className="text-[#b91c1c]">*</span>
               </Label>
               <Input
                 id="signup-email"
@@ -296,14 +288,11 @@ export function SignupForm({
                 className="mt-1 rounded-[3px] border-zinc-300 min-h-[40px] text-xs"
                 required
               />
-              <span className="text-[10.5px] text-zinc-400 mt-0.5 block">
-                Mỗi tài khoản gắn với 1 Gmail duy nhất (có xác thực OTP).
-              </span>
             </div>
           ) : (
             <div>
               <Label htmlFor="signup-phone" className="font-semibold text-zinc-700">
-                Số điện thoại di động <span className="text-[#b91c1c]">*</span>
+                Số điện thoại <span className="text-[#b91c1c]">*</span>
               </Label>
               <Input
                 id="signup-phone"
@@ -314,9 +303,6 @@ export function SignupForm({
                 className="mt-1 rounded-[3px] border-zinc-300 min-h-[40px] text-xs"
                 required
               />
-              <span className="text-[10.5px] text-zinc-400 mt-0.5 block">
-                Mỗi tài khoản gắn với 1 Số điện thoại duy nhất.
-              </span>
             </div>
           )}
 
@@ -359,18 +345,12 @@ export function SignupForm({
             />
           </div>
 
-          <div className="rounded-[3px] bg-zinc-50 border border-zinc-200 p-2 text-[11px] text-zinc-600 space-y-0.5">
-            <div className="font-semibold text-zinc-800">Lưu ý phân quyền:</div>
-            <div>• Tài khoản tự đăng ký có quyền <strong className="text-zinc-900">USER</strong> (Xem điểm, xếp hạng).</div>
-            <div>• Quyền <strong className="text-[#b91c1c]">ADMIN</strong> do cấp trên cấp trực tiếp trong hệ thống.</div>
-          </div>
-
           <Button
             type="submit"
             disabled={isLoading}
             className="w-full min-h-[44px] bg-[#b91c1c] hover:bg-[#991b1b] text-white font-semibold text-xs py-2.5 rounded-[3px] shadow-xs transition-colors cursor-pointer mt-2"
           >
-            {isLoading ? "Đang xử lý..." : method === "email" ? "Tiếp tục & Nhận mã OTP" : "Đăng ký tài khoản"}
+            {isLoading ? "Đang xử lý..." : "Đăng ký"}
           </Button>
 
           <div className="text-center text-xs text-zinc-500 pt-2 border-t border-zinc-100">
@@ -380,7 +360,7 @@ export function SignupForm({
               onClick={onSwitchToSignIn}
               className="text-[#b91c1c] font-semibold hover:underline cursor-pointer"
             >
-              Đăng nhập ngay
+              Đăng nhập
             </button>
           </div>
         </form>
@@ -428,21 +408,20 @@ export function LoginForm({
       <div className="mx-auto w-full max-w-sm space-y-4 rounded-[4px] border border-zinc-300 bg-white p-6 shadow-xs">
         <div className="text-center space-y-1">
           <h2 className="text-lg font-bold text-zinc-900 uppercase tracking-tight">
-            Đăng nhập hệ thống
+            Đăng nhập
           </h2>
-          <p className="text-xs text-zinc-500">Đăng nhập bằng Tên người dùng, Gmail hoặc Số điện thoại</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-3.5 text-xs">
           <div>
             <Label htmlFor="signin-email" className="font-semibold text-zinc-700">
-              Tên đăng nhập / Gmail / Số điện thoại <span className="text-[#b91c1c]">*</span>
+              Tài khoản <span className="text-[#b91c1c]">*</span>
             </Label>
             <div className="relative mt-1">
               <Input
                 id="signin-email"
                 className="rounded-[3px] border-zinc-300 min-h-[44px] text-xs text-zinc-900"
-                placeholder="admin / user_demo / email@gmail.com"
+                placeholder="Tên đăng nhập, email hoặc số điện thoại"
                 type="text"
                 value={identifier}
                 onChange={(e) => setIdentifier(e.target.value)}
@@ -459,7 +438,7 @@ export function LoginForm({
               <Input
                 id="signin-password"
                 className="rounded-[3px] border-zinc-300 min-h-[44px] pr-11 text-xs text-zinc-900"
-                placeholder="Nhập mật khẩu"
+                placeholder="Mật khẩu"
                 type={isVisible ? "text" : "password"}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -489,7 +468,7 @@ export function LoginForm({
             </div>
             <button
               type="button"
-              onClick={() => alert("Vui lòng liên hệ Quản trị viên hệ thống để được cấp lại mật khẩu.")}
+              onClick={() => alert("Vui lòng liên hệ quản trị viên để được cấp lại mật khẩu.")}
               className="text-xs text-[#b91c1c] font-medium hover:underline transition-colors cursor-pointer min-h-[36px] inline-flex items-center"
             >
               Quên mật khẩu?
@@ -501,7 +480,7 @@ export function LoginForm({
             disabled={isLoading}
             className="w-full min-h-[44px] bg-[#b91c1c] hover:bg-[#991b1b] text-white font-semibold text-xs py-2.5 rounded-[3px] shadow-xs transition-colors cursor-pointer"
           >
-            {isLoading ? "Đang xác thực..." : "Đăng nhập hệ thống"}
+            {isLoading ? "Đang xác thực..." : "Đăng nhập"}
           </Button>
 
           <div className="text-center text-xs text-zinc-500 pt-2 border-t border-zinc-100">
@@ -511,7 +490,7 @@ export function LoginForm({
               onClick={onSwitchToSignUp}
               className="text-[#b91c1c] font-semibold hover:underline cursor-pointer"
             >
-              Đăng ký tài khoản USER
+              Đăng ký
             </button>
           </div>
         </form>
